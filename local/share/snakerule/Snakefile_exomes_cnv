@@ -26,18 +26,26 @@ rule all_cnv:
 #write a file with this rule and then call a rule parsing it
 rule call_cvn:
 	input: unpack(find_paired_samples)
-	output: "{sample}.cnv"
+	output: "{sample}.pairs"
 	shell: 
 		"""
 		if [ {input.tumor} = "mock" ]; then
 			echo -e "{wildcards.sample}\tmissingpair" > {output}
 		else
-			echo -e "{input.tumor}\t{input.normal}" > {output}
+			echo -e "{wildcards.sample}\t{input.tumor}\t{input.normal}" > {output}
 
 		fi
 		"""
 
+rule listofdoablecnv:
+	input: expand("{sample}.pairs", sample=SAMPLES)
+	output: "list_doable"
+	shell: 
+		"""
+		cat {input} | grep -w -v missingpair | sed s'/\.\.\\///g' > {output}
+		"""
 
 rule mock:
 	output: "mock"
 	shell: "echo hello > {output}"
+

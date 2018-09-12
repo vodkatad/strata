@@ -1,0 +1,42 @@
+include: "conf.sk"
+rule all:
+	input: expand("{sample}.pileup", sample=SAMPLES)
+
+#[will become .cnv]
+# following https://github.com/Jeltje/varscan2/blob/master/run_varscan
+# and http://dkoboldt.github.io/varscan/copy-number-calling.html
+
+def find_bams(wildcards):
+	REF="/rogue/bioinfotree/task/sequences/dataset/ucsc/hsapiens/hg18/all_nonxym.fa"
+	FILES="../list_doable"
+	with open(FILES, 'r') as bam_files:
+		for line in bam_files.readlines():
+			line = line.rstrip()
+			fields = line.split("\t")
+			if fields[0] == wildcards.sample:
+				res = { 'normal': BAM_DIR+fields[2], 'tumor': BAM_DIR+fields[1], 'ref': REF }
+				print(res)
+				return res
+	print("malformed list_doable/missing sample line for " + wildcards.sample)
+
+# -l, --positions FILE 
+# could be useful to use the list of exons here to use less disk space?
+#-d, --max-depth INT
+#    At a position, read maximally INT reads per input BAM. [250] 
+#<mpileup> Set max per-file depth to 4000
+rule mpileup:
+	input: unpack(find_bams)
+	output: "{sample}.pileup"
+	shell: 
+		"""
+		samtools mpileup -q 1 -f {input.ref} {input.normal} {input.tumor} > {output}
+		"""
+
+
+# we need to set a scaling using n. of reads
+#vOptions='--min-segment-size 100 --mpileup 1'
+#dr="--data-ratio $dratio"	# .88 works instead of 0.88
+#	cnum=$(grep -m 1 mapped $tmpdir/control.flagstat | cut -f1 -d' ')
+#	tnum=$(grep -m 1 mapped $tmpdir/tumor.flagstat | cut -f1 -d' ')
+#dratio=$(echo "scale=2;$cnum/$tnum" | bc)
+
