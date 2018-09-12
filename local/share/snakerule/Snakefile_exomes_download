@@ -4,10 +4,3 @@
 rule download:
 	shell: "scp -r ElenaGrassi@lasnas1.polito.it:/volume1/Exomes/EGAD00001001628/*bam ."
 
-
-rule samples_list:
-	output: "samples_list"
-	shell: 
-		"""
-		ls *t* | sed 's/\.bam//g' | tr "\n" "," | sed 's/,/","/g;' > {output}
-		"""
