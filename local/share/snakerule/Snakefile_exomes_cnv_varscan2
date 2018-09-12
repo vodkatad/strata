@@ -32,6 +32,25 @@ rule mpileup:
 		samtools mpileup -q 1 -f {input.ref} {input.normal} {input.tumor} > {output}
 		"""
 
+def find_dr(wildcards):
+	import os
+	bam=find_bams(wildcards)
+	t=bam['tumor'].replace(".bam",".stat")
+	n=bam['normal'].replace(".bam",".stat")
+	def read_mapped(file):
+		with open(file, 'r') as stats:
+        	        lines = stats.readlines()
+               	        line = lines[2].rstrip()
+                        fields = line.split("+")
+			return fields[0].rstrip()
+	tm=read_mapped(t)
+	nm=read_mapped(n)
+	return nm/tm
+
+#data@tungsteno:/mnt/purple/data/strata/dataset/exomes/cnv/varscan2$ cat ../../_EGAR00001352875_n_PGDX3243T_CpCR2.stat
+#33768192 + 2172448 in total (QC-passed reads + QC-failed reads)
+#0 + 0 duplicates
+#32232602 + 1805874 mapped (95.45%:83.13%)
 
 # we need to set a scaling using n. of reads
 #vOptions='--min-segment-size 100 --mpileup 1'
@@ -39,4 +58,12 @@ rule mpileup:
 #	cnum=$(grep -m 1 mapped $tmpdir/control.flagstat | cut -f1 -d' ')
 #	tnum=$(grep -m 1 mapped $tmpdir/tumor.flagstat | cut -f1 -d' ')
 #dratio=$(echo "scale=2;$cnum/$tnum" | bc)
-
+rule copynumber:
+	input: "{sample}.pileup"
+	output: "{sample}.cn"
+	params:
+		dr=find_dr
+	shell:
+		"""
+		java -jar VARSCAN copynumber {wildcards.sample} --mpileup 1 --data-ratio {params.dr} --min-segment-size=100
+		"""
