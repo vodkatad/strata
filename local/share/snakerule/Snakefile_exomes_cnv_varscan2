@@ -43,8 +43,8 @@ def find_dr(wildcards):
                	        line = lines[2].rstrip()
                         fields = line.split("+")
 			return fields[0].rstrip()
-	tm=read_mapped(t)
-	nm=read_mapped(n)
+	tm=int(read_mapped(t))
+	nm=int(read_mapped(n))
 	return nm/tm
 
 #data@tungsteno:/mnt/purple/data/strata/dataset/exomes/cnv/varscan2$ cat ../../_EGAR00001352875_n_PGDX3243T_CpCR2.stat
@@ -58,12 +58,15 @@ def find_dr(wildcards):
 #	cnum=$(grep -m 1 mapped $tmpdir/control.flagstat | cut -f1 -d' ')
 #	tnum=$(grep -m 1 mapped $tmpdir/tumor.flagstat | cut -f1 -d' ')
 #dratio=$(echo "scale=2;$cnum/$tnum" | bc)
+VARSCAN="../../../../local/bin/VarScan.v2.4.3.jar"
 rule copynumber:
 	input: "{sample}.pileup"
 	output: "{sample}.cn"
 	params:
-		dr=find_dr
+		dr=find_dr,
+		varscan=VARSCAN
 	shell:
 		"""
-		java -jar VARSCAN copynumber {wildcards.sample} --mpileup 1 --data-ratio {params.dr} --min-segment-size=100
+		cat {input} | java -jar {params.varscan} copynumber {wildcards.sample} --mpileup 1 --data-ratio {params.dr} --min-segment-size=100
+		mv output.copynumber {output}
 		"""
