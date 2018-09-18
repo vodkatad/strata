@@ -27,7 +27,7 @@ rule avg_week:
 
 rule models:
     input: volumes="w0-w5_avg.tsv", pivot="muts_{type}_pivot.txt"
-    output: linear="{type}_linear_models.tsv", logistic="{type}_logistic_model.tsv"
+    output: linear="{type}_linear_models.tsv", logistic="{type}_logistic_models.tsv"
     params: debug=DEBUG, pdx="pdx", cutoff=3 
     script: SRC_DIR+"models_vol_pivot.R"
 
