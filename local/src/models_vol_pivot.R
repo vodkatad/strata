@@ -47,7 +47,7 @@ res$adj_pval <- p.adjust(res$pval, method="bonferroni")
 #head(res[order(res[,2]),])
 write.table(res, file=linearOut, sep="\t", quote=FALSE)
 
-averages$class <- ifelse(averages$perc < -50, 'CR', ifelse(averages$perc > 35, 'PD', 'SD'))
+averages$class <- ifelse(averages$perc < -50, 'OR', ifelse(averages$perc > 35, 'PD', 'SD'))
 averages$class <- as.factor(averages$class)
 classmodel <- function(mut, avg, samples) {
   muts <- data.frame(status=mut, row.names=samples)
