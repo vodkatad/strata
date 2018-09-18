@@ -21,7 +21,13 @@ rule muts_gene_table:
 
 rule avg_week:
     input: volumes=VOLUMES
-    output: waterfall="{wr}-{wt}_waterfall.pdf", means="{wr}-{wt}_avg.tsv"
-    params: debug=DEBUG,pdx="pdx",ref="{wr}",target="{wt}"  
+    output: waterfall="{wr}-{wt}_waterfall.png", means="{wr}-{wt}_avg.tsv"
+    params: debug=DEBUG, pdx="pdx", ref="{wr}", target="{wt}"  
     script: SRC_DIR+"average_volumes_pdx.R"
+
+rule models:
+    input: volumes="w0-w5_avg.tsv", pivot="muts_{type}_pivot.txt"
+    output: linear="{type}_linear_models.tsv", logistic="{type}_logistic_model.tsv"
+    params: debug=DEBUG, pdx="pdx", cutoff=3 
+    script: SRC_DIR+"models_vol_pivot.R"
 
