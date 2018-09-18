@@ -1,0 +1,27 @@
+include: "conf.sk"
+
+rule muts_table:
+    input: MUTS_REDUCED
+    output: "muts_pivot.txt"
+    run:
+         import pandas
+         data = pandas.read_csv(input[0], sep="\t", header=None, names=['pdx','mut'])
+         pt = pandas.pivot_table(data, index=['pdx'], columns='mut', aggfunc=lambda x: 1, fill_value=0)
+         pt.to_csv(output[0], sep='\t', index=True)
+
+rule muts_gene_table:
+    input: MUTS_GENE_REDUCED
+    output: "muts_gene_pivot.txt"
+    run:
+         import pandas
+         data = pandas.read_csv(input[0], sep="\t", header=None, names=['pdx','mut'])
+         pt = pandas.pivot_table(data, index=['pdx'], columns='mut', aggfunc=lambda x: 1, fill_value=0)
+         pt.to_csv(output[0], sep='\t', index=True)
+
+
+rule avg_week:
+    input: volumes=VOLUMES
+    output: waterfall="{wr}-{wt}_waterfall.pdf", means="{wr}-{wt}_avg.tsv"
+    params: debug=DEBUG,pdx="pdx",ref="{wr}",target="{wt}"  
+    script: SRC_DIR+"average_volumes_pdx.R"
+
