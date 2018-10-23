@@ -1,0 +1,25 @@
+include: "../conf.sk"
+
+rule all:
+        input: expand("{sample}.bam", sample=SAMPLES, pair=PAIRS)
+
+function produce_pairs(wildcards):
+	import os
+	fastqs = expand(DATA+wildcards.sample+FASTQ_SUFFIX, pair=PAIRS)
+	if len(fastqs) == 2 and os.path.isfile(fastqs[1]):
+		res = { 'fastq1' = fastqs[0], 'fastq2': fastqs[}
+	else	
+		res = { 'fastq1' = fastqs[0], 'fastq2': ''}
+	return res
+
+#If the quality scores are encoded as Illumina 1.3 or 1.5, use BWA aln with the “-l” flag.
+#-T INT 	Don't output alignment with scores lower than INT. This option only affects output. [30]
+rule bwa_mem:
+    input: unpack(produce_pairs)
+    output: "{sample}.bam"
+    params: cores=CORES, ref="TODO"
+    shell: 
+	"""
+		bwa mem -t {params.cores} -T 0 -R {wildcards.sample} {params.ref} {input.fastq1} {input.fastq2} | samtools view -Shb -o {output} 
+	"""
+

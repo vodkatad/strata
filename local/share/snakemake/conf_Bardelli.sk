@@ -1,0 +1,15 @@
+BROOT='/home/egrassi' # very nice :(
+PRJ_ROOT=BROOT+'/strata'
+SRC_DIR=PRJ_ROOT+'/local/src'
+DATA_DIR=PRJ_ROOT+'/local/share/data'
+
+## This dataset:
+##DATA=DATA_DIR+'/bardelli_wes'
+DATA=DATA_DIR
+#ls *t*.bam | sed 's/\.bam//g'  | sed 's/_t_/\t/g' | cut -f 2| tr "\n" "," | sed 's/,/","/g;'
+SAMPLES=["CRC0542LMX0B01001TUMD11000"]
+FASTQ_SUFFIX=".xenome_graft_{pair}.fastq.gz"
+
+PAIRS=[1,2]
+# TODO need to adapt to unpaired (do they exists?) reads, will need to change the all rule in the subdirs using an input function...
+CORES="12"

@@ -1,0 +1,10 @@
+include: "../conf.sk"
+
+rule all:
+        input: expand("fastqc_{sample}_{pair}", sample=SAMPLES, pair=PAIRS)
+
+rule fastqc:
+    input: DATA+"/{sample}"+FASTQ_SUFFIX
+    output: "fastqc_{sample}_{pair}"
+    shell: "mkdir -p {output}; fastqc --extract -t " + CORES + " -o {output} {input}; rm {output}/*fastqc.zip"
+
