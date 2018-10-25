@@ -16,14 +16,28 @@ def produce_pairs(wildcards):
 # -K and -Y are not in the manual, -k is minimum seed length (?) TOUNDERSTAND
 # If the quality scores are encoded as Illumina 1.3 or 1.5, use BWA aln with the “-l” flag.
 #-T INT Don't output alignment with scores lower than INT. This option only affects output. [30]
+# removed -R just to go on and get execution times
+# defining RG from help from https://www.biostars.org/p/280837/, but changed SM to be more human readable, lib is somewhat 
+# conceptually wrong here, I fear.
 rule bwa_mem:
     input: unpack(produce_pairs)
     output: "{sample}.bam"
-    params: cores=CORES, ref="TODO"
+    params: cores=CORES, ref=DATA_DIR+"/GRCh38.d1.vd1.fa"
     shell: 
         """
-        bwa mem -t {params.cores} -T 0 -R {wildcards.sample} {params.ref} {input.fastq1} {input.fastq2} | samtools view -Shb -o {output} 
+        header=$(zcat {input.fastq1} | head -n 1) || echo "pipehead"
+        id=$(echo $header | cut -f 1-4 -d":" | sed 's/^@//' | sed 's/:/_/g')
+        smnh=$(echo $header | grep -Eo "[ATGCN]+$")
+        sm={wildcards.sample}
+        bwa mem -R "@RG\\tID:$id\\tSM:$sm\\tLB:$sm"_"$id"_"$smnh\\tPL:ILLUMINA" -t {params.cores} -T 0 {params.ref} {input.fastq1} {input.fastq2} | samtools view -Shb -o {output} 
         """
 
+#Nodes: 1
+#Cores per node: 8
+#CPU Utilized: 05:33:31
+#CPU Efficiency: 52.75% of 10:32:16 core-walltime
+#Job Wall-clock time: 01:19:02
+#Memory Utilized: 5.56 GB
+#Memory Efficiency: 71.20% of 7.81 GB
 
 #http://dkoboldt.github.io/varscan/germline-calling.html
