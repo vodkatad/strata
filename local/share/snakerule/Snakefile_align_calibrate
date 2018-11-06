@@ -87,5 +87,36 @@ rule mark_duplicates_picard:
         ADD_PG_TAG_TO_READS=false VALIDATION_STRINGENCY="STRICT"
         """
 
+# Run time 00:31:45
+#[align_calibrate]egrassi@hactarlogin$ seff 30212
+#Job ID: 30212
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Nodes: 1
+#Cores per node: 12
+#CPU Utilized: 01:01:01
+#CPU Efficiency: 16.01% of 06:21:00 core-walltime
+#Job Wall-clock time: 00:31:45
+#Memory Utilized: 8.79 GB
+#Memory Efficiency: 90.03% of 9.77 GB
+
 
 # TODO cluster json that gets from rule params the max mem to be used, need a generalized snakemake_cluster that do not require mem
+
+# indel realignment: apparently not useful anymore for gatk 4 - need to call it before using other caller?
+# [gatk]egrassi@hactarlogin$ singularity pull --name gatk.img docker://broadinstitute/gatk:4.0.11.0
+
+#[data]egrassi@compute-1-4$ samtools faidx GRCh38.d1.vd1.fa
+#[data]egrassi@compute-1-4$ picard CreateSequenceDictionary R=GRCh38.d1.vd1.fa O=GRCh38.d1.vd1.dict
+#[align_calibrate]egrassi@compute-1-4$ time snakemake realigned_CRC0542LMX0B03020TUMD05000.bam --use-singularity --singularity-args "-B /home/egrassi/strata/:/home/egrassi/strata/"
+rule recalibrate_quality:
+    input: bam="markedDup_{sample}.bam", reference=DATA_DIR+"/GRCh38.d1.vd1.fa", snps=DATA_DIR+"/All_20180418.vcf.gz"
+    output: bam="realigned_{sample}.bam", table="{sample}.table"
+    singularity: "/home/egrassi/gatk/gatk.img"
+    params: thread=12
+    shell:
+        """
+            gatk BaseRecalibrator -R {input.reference} -I {input.bam} --known-sites {input.snps} -O {output.table}
+            gatk PrintReads -R {input.reference} -I {input.bam} -BQSR {output.table} -O {output.bam}
+        """
