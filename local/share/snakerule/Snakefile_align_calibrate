@@ -106,17 +106,44 @@ rule mark_duplicates_picard:
 
 # indel realignment: apparently not useful anymore for gatk 4 - need to call it before using other caller?
 # [gatk]egrassi@hactarlogin$ singularity pull --name gatk.img docker://broadinstitute/gatk:4.0.11.0
+rule add_chr_to_vcf_porc:
+    input: DATA_DIR+"/All_20180418.vcf.gz"
+    output: "dbsnp.all.vcf.gz"
+    shell:
+        """
+        zcat {input} | perl -ane 'if (/^#/) {{print "$_"}} else {{print "chr$_"}}' | bgzip > {output}
+        tabix -p vcf {output}
+        """
 
 #[data]egrassi@compute-1-4$ samtools faidx GRCh38.d1.vd1.fa
 #[data]egrassi@compute-1-4$ picard CreateSequenceDictionary R=GRCh38.d1.vd1.fa O=GRCh38.d1.vd1.dict
 #[align_calibrate]egrassi@compute-1-4$ time snakemake realigned_CRC0542LMX0B03020TUMD05000.bam --use-singularity --singularity-args "-B /home/egrassi/strata/:/home/egrassi/strata/"
 rule recalibrate_quality:
-    input: bam="markedDup_{sample}.bam", reference=DATA_DIR+"/GRCh38.d1.vd1.fa", snps=DATA_DIR+"/All_20180418.vcf.gz"
-    output: bam="realigned_{sample}.bam", table="{sample}.table"
+    input: bam="markedDup_{sample}.bam", reference=DATA_DIR+"/GRCh38.d1.vd1.fa", snps="dbsnp.all.vcf.gz"
+    output: "{sample}.placeholder"
     singularity: "/home/egrassi/gatk/gatk.img"
-    params: thread=12
+    params: thread=4, bam="realigned_{sample}.bam", table="{sample}.table"
     shell:
         """
-            gatk BaseRecalibrator -R {input.reference} -I {input.bam} --known-sites {input.snps} -O {output.table}
-            gatk PrintReads -R {input.reference} -I {input.bam} -BQSR {output.table} -O {output.bam}
+            gatk BaseRecalibrator -R {input.reference} -I {input.bam} --known-sites {input.snps} -O {params.table} 2> {params.table}.slog
+            gatk PrintReads -R {input.reference} -I {input.bam} -BQSR {params.table} -O {params.bam} 2> {params.bam}.slog
+            touch {output}
         """
+
+#[align_calibrate]egrassi@compute-1-4$ time  snakemake --use-singularity --singularity-args "-B /home/egrassi/strata:/home/egrassi/strata" realigned_CRC0542LMX0B03020TUMD05000.bam 
+# started but was too slow to be left on srun over night :(
+#hoping for the best
+#[align_calibrate]egrassi@hactarlogin$ snakemake -j 1 CRC0542LMX0B03020TUMD05000.placeholder --cluster-config ../../local/src/hactar.json --cluster "sbatch --mail-user={cluster.mail-user} --mail-type={cluster.mail-type} --partition={cluster.partition} --nodes={cluster.nodes} --job-name={cluster.job-name} --output={cluster.output} --error={cluster.error} --time=48:00:00 --mem=8000 --ntasks=4 --use-singularity --singularity-args "-B /home/egrassi/strata:/home/egrassi/strata"
+
+# load singularity before
+#[align_calibrate]egrassi@hactarlogin$ snakemake -j 1 CRC0542LMX0B03020TUMD05000.placeholder --cluster-config ../../../local/share/hactar.json --cluster "sbatch --mail-user={cluster.mail-user} --mail-type={cluster.mail-type} --partition={cluster.partition} --nodes={cluster.nodes} --job-name={cluster.job-name} --output={cluster.output} --error={cluster.error} --time=48:00:00 --mem=8000 --ntasks=4" --use-singularity --singularity-args "-B /home/egrassi/strata:/home/egrassi/strata"
+
+# On using mutect2 or the germline caller if one does not have normal samples:
+#https://www.biostars.org/p/283279/
+#according to https://www.biostars.org/p/207536/
+# https://github.com/AstraZeneca-NGS/VarDict
+
+
+# For coverage:
+#http://crazyhottommy.blogspot.com/2013/05/find-exons-introns-and-intergenic.html
+#https://github.com/brentp/mosdepth
