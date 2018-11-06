@@ -1,8 +1,5 @@
 include: "../conf.sk"
 
-rule all:
-        input: expand("{sample}.bam", sample=SAMPLES, pair=PAIRS)
-
 def produce_pairs(wildcards):
         import os
         fastqs = expand(DATA+'/'+wildcards.sample+FASTQ_SUFFIX, pair=PAIRS)
@@ -13,12 +10,21 @@ def produce_pairs(wildcards):
 
 # But GATK:
 # "PreProcessingForVariantDiscovery_GATK4.bwa_commandline": "bwa mem -K 100000000 -p -v 3 -t 16 -Y $bash_ref_fasta",
-# -K and -Y are not in the manual, -k is minimum seed length (?) TOUNDERSTAND
+# -K and -Y are not in the manual, -k is minimum seed length (?) TOUNDERSTANDXXX
 # If the quality scores are encoded as Illumina 1.3 or 1.5, use BWA aln with the “-l” flag.
 #-T INT Don't output alignment with scores lower than INT. This option only affects output. [30]
-# removed -R just to go on and get execution times
 # defining RG from help from https://www.biostars.org/p/280837/, but changed SM to be more human readable, lib is somewhat 
 # conceptually wrong here, I fear.
+
+# TODO RERUn with:
+#      -K INT        process INT input bases in each batch regardless of nThreads (for reproducibility) []
+#      -Y            use soft clipping for supplementary alignments
+# -p            smart pairing (ignoring in2.fq) ????
+
+# -v 3 is the default so it's not needed
+# Why -T 0? Where did I get it? https://docs.gdc.cancer.gov/Data/PDF/Data_UG.pdf
+# but these are not best practices from GATK, they use the default -T 30, will it work anyway?
+# In that doc they merge with picard, but merge all samples together?
 rule bwa_mem:
     input: unpack(produce_pairs)
     output: "{sample}.bam"
@@ -40,4 +46,46 @@ rule bwa_mem:
 #Memory Utilized: 5.56 GB
 #Memory Efficiency: 71.20% of 7.81 GB
 
+
+# We skip this rule cause:
+# Task is assuming query-sorted input so that the Secondary and Supplementary reads get marked correctly
+# This works because the output of BWA is query-grouped and therefore, so is the output of MergeBamAlignment.
+# While query-grouped isn't actually query-sorted, it's good enough for MarkDuplicates with ASSUME_SORT_ORDER="queryname"
+# Picard sort and mark duplicates # XXX TODO sort with samtools after mapping and get done with it?
+rule sort_picard:
+    input: "{sample}.bam"
+    output: temp("sorted_{sample}.bam")
+    shell:
+        """
+        picard SortSam INPUT={input} OUTPUT={output} SORT_ORDER="queryname"
+        """
+
 #http://dkoboldt.github.io/varscan/germline-calling.html
+
+# which are the parameters suggested by best practices? -1 for MINIMUM_DISTANCE does not seem right
+#https://broadinstitute.github.io/picard/command-line-overview.html
+#https://github.com/gatk-workflows/gatk4-data-processing/blob/master/processing-for-variant-discovery-gatk4.wdl
+#https://github.com/gatk-workflows/five-dollar-genome-analysis-pipeline/blob/master/tasks_pipelines/unmapped_bam_to_aligned_bam.wdl
+#https://github.com/gatk-workflows/five-dollar-genome-analysis-pipeline/blob/master/tasks_pipelines/bam_processing.wdl
+#    METRICS_FILE=${metrics_filename} \
+#      VALIDATION_STRINGENCY=SILENT \ for efficiency reasons, but I would like it to validate instead of having to check that I'm guessing the parameters right. removed assume_sorted for the same reason
+#      ${"READ_NAME_REGEX=" + read_name_regex} \ not needed cause the default should split on : and be ok
+#      OPTICAL_DUPLICATE_PIXEL_DISTANCE=2500 \
+#      ASSUME_SORT_ORDER="queryname" \
+#      CLEAR_DT="false" \ ????
+#ADD_PG_TAG_TO_READS=false
+# TODO not withMateCigar? Which is in the bestpractices (differences from pdf from  https://www.broadinstitute.org/partnerships/education/broade/best-practices-variant-calling-gatk-1 and https://software.broadinstitute.org/gatk/best-practices/workflow?id=11165)
+#https://gatkforums.broadinstitute.org/gatk/discussion/6747/how-to-mark-duplicates-with-markduplicates-or-markduplicateswithmatecigar#section2
+rule mark_duplicates_picard:
+    input: "{sample}.bam"
+    output: bam="markedDup_{sample}.bam", metrics="{sample}.dupMetrics.txt"
+    params: pixel_dist=PATTERNED
+    shell: 
+        """
+        picard -Xmx10g -XX:ParallelGCThreads=11 MarkDuplicates INPUT="{input}" OUTPUT="{output.bam}" METRICS_FILE="{output.metrics}" \
+        ASSUME_SORT_ORDER="queryname" OPTICAL_DUPLICATE_PIXEL_DISTANCE="{params.pixel_dist}" \
+        ADD_PG_TAG_TO_READS=false VALIDATION_STRINGENCY="STRICT"
+        """
+
+
+# TODO cluster json that gets from rule params the max mem to be used, need a generalized snakemake_cluster that do not require mem

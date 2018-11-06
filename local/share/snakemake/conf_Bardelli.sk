@@ -13,3 +13,12 @@ FASTQ_SUFFIX=".xenome_graft_{pair}.fastq.gz"
 PAIRS=[1,2]
 # TODO need to adapt to unpaired (do they exists?) reads, will need to change the all rule in the subdirs using an input function...
 CORES="4"
+
+PATTERNED=2500 
+# HiSeq4000, otherwise 100 for unpatterned
+
+
+rule all_something:
+    input: expand("{sample}.{{something}}", sample=SAMPLES)
+    output: "all_samples_{something}"
+    shell: "touch {output}"
