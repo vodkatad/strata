@@ -142,8 +142,51 @@ rule recalibrate_quality:
 #https://www.biostars.org/p/283279/
 #according to https://www.biostars.org/p/207536/
 # https://github.com/AstraZeneca-NGS/VarDict
+rule bai:
+    input: "{whatever}.bam"
+    output: "{whatever}.bam.bai"
+    shell: 
+        """
+        samtools sort -o {wildcards.whatever}.sorted.bam {input}
+        samtools index {wildcards.whatever}.sorted.bam {output}
+        rm {wildcards.whatever}.sorted.bam
+        """
+
+# Coverage analyses:
+rule small_coverage:
+    input: interval=ANNOTATIONS+"/{where}_unstranded.bed.gz", bam="markedDup_{sample}.bam", bai="markedDup_{sample}.bam.bai"
+    output: "depth/{where}-{sample}.regions.bed.gz"
+    params: prefix="depth/{where}-{sample}" 
+    shell: 
+        """
+            mkdir -p depth
+            zcat {input.interval} > {params.prefix}.tmp
+            mosdepth --by {params.prefix}.tmp {params.prefix} {input.bam}
+            rm {params.prefix}.tmp
+        """
 
 
-# For coverage:
-#http://crazyhottommy.blogspot.com/2013/05/find-exons-introns-and-intergenic.html
+rule large_coverage:
+    input: interval=ANNOTATIONS+"/{where}.bed.gz", bam="markedDup_{sample}.bam", bai="markedDup_{sample}.bam.bai"
+    output: "depth/{where}-{sample}.large.regions.bed.gz"
+    params: prefix="depth/{where}-{sample}.large" 
+    shell: 
+        """
+            samtools index {input.bam}
+            mkdir -p depth
+            export MOSDEPTH_Q0=NO_COVERAGE   \
+            export MOSDEPTH_Q1=LOW_COVERAGE  \
+            export MOSDEPTH_Q2=CALLABLE      \
+            export MOSDEPTH_Q3=HIGH_COVERAGE \
+            mosdepth -n --quantize 0:1:5:150: --by <(zcat {input.interval}) {params.prefix} {input.bam}
+        """
+
 #https://github.com/brentp/mosdepth
+# Coverage analyses:
+rule:
+    input: interval=ANNOTATIONS+"/{where}_unstranded.bed.gz", bam="markedDup_{sample}.bam"
+    output: "depth/{where}-{sample}.samtools"
+    shell: 
+        """
+            samtools view -b -F 1796 {input.bam} | samtools sort -o - -| samtools depth -b <(zcat {input.interval} | bawk '{{print $0,NR}}')  - > {output}
+        """
