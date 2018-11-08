@@ -118,6 +118,7 @@ rule add_chr_to_vcf_porc:
 #[data]egrassi@compute-1-4$ samtools faidx GRCh38.d1.vd1.fa
 #[data]egrassi@compute-1-4$ picard CreateSequenceDictionary R=GRCh38.d1.vd1.fa O=GRCh38.d1.vd1.dict
 #[align_calibrate]egrassi@compute-1-4$ time snakemake realigned_CRC0542LMX0B03020TUMD05000.bam --use-singularity --singularity-args "-B /home/egrassi/strata/:/home/egrassi/strata/"
+# --spark-master local[2]
 rule recalibrate_quality:
     input: bam="markedDup_{sample}.bam", reference=DATA_DIR+"/GRCh38.d1.vd1.fa", snps="dbsnp.all.vcf.gz"
     output: "{sample}.placeholder"
@@ -125,8 +126,8 @@ rule recalibrate_quality:
     params: thread=4, bam="realigned_{sample}.bam", table="{sample}.table"
     shell:
         """
-            gatk BaseRecalibrator -R {input.reference} -I {input.bam} --known-sites {input.snps} -O {params.table} 2> {params.table}.slog
-            gatk PrintReads -R {input.reference} -I {input.bam} -BQSR {params.table} -O {params.bam} 2> {params.bam}.slog
+            gatk BaseRecalibratorSpark --spark-master local[{params.thread}] -R {input.reference} -I {input.bam} --known-sites {input.snps} -O {params.table} 2> {params.table}.slog
+            gatk ApplyBQSRSpark --spark-master local[{params.thread}] -R {input.reference} -I {input.bam} --bqsr-recal-file  {params.table} -O {params.bam} 2> {params.bam}.slog
             touch {output}
         """
 
