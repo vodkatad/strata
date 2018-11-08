@@ -118,17 +118,19 @@ rule add_chr_to_vcf_porc:
 #[data]egrassi@compute-1-4$ samtools faidx GRCh38.d1.vd1.fa
 #[data]egrassi@compute-1-4$ picard CreateSequenceDictionary R=GRCh38.d1.vd1.fa O=GRCh38.d1.vd1.dict
 #[align_calibrate]egrassi@compute-1-4$ time snakemake realigned_CRC0542LMX0B03020TUMD05000.bam --use-singularity --singularity-args "-B /home/egrassi/strata/:/home/egrassi/strata/"
-# --spark-master local[2]
+# --spark-master local[2] to use BaseRecalibratorSpark with 2 threads but it's still beta
+PADDING=100
 rule recalibrate_quality:
-    input: bam="markedDup_{sample}.bam", reference=DATA_DIR+"/GRCh38.d1.vd1.fa", snps="dbsnp.all.vcf.gz"
-    output: "{sample}.placeholder"
+    input: bam="markedDup_{sample}.sorted.bam", reference=DATA_DIR+"/GRCh38.d1.vd1.fa", snps="dbsnp.all.vcf.gz", exons=ANNOTATIONS+"/exon_unstranded.bed.gz", bai="markedDup_{sample}.sorted.bam.bai"
     singularity: "/home/egrassi/gatk/gatk.img"
-    params: thread=4, bam="realigned_{sample}.bam", table="{sample}.table"
+    output: bam="realigned_{sample}.bam", table="{sample}.table"
+    params: padding=PADDING
     shell:
         """
-            gatk BaseRecalibratorSpark --spark-master local[{params.thread}] -R {input.reference} -I {input.bam} --known-sites {input.snps} -O {params.table} 2> {params.table}.slog
-            gatk ApplyBQSRSpark --spark-master local[{params.thread}] -R {input.reference} -I {input.bam} --bqsr-recal-file  {params.table} -O {params.bam} 2> {params.bam}.slog
-            touch {output}
+            zcat {input.exons} > {output.bam}.bed
+            gatk BaseRecalibrator --interval-padding {params.padding} -R {input.reference} -I {input.bam} --known-sites {input.snps} -O {output.table} -L {output.bam}.bed 2> {output.table}.slog
+            gatk ApplyBQSR -R {input.reference} -I {input.bam} --bqsr-recal-file  {output.table} -O {output.bam} --create-output-bam-index true 2> {output.bam}.slog
+            rm {output.bam}.bed
         """
 
 #[align_calibrate]egrassi@compute-1-4$ time  snakemake --use-singularity --singularity-args "-B /home/egrassi/strata:/home/egrassi/strata" realigned_CRC0542LMX0B03020TUMD05000.bam 
@@ -139,23 +141,50 @@ rule recalibrate_quality:
 # load singularity before
 #[align_calibrate]egrassi@hactarlogin$ snakemake -j 1 CRC0542LMX0B03020TUMD05000.placeholder --cluster-config ../../../local/share/hactar.json --cluster "sbatch --mail-user={cluster.mail-user} --mail-type={cluster.mail-type} --partition={cluster.partition} --nodes={cluster.nodes} --job-name={cluster.job-name} --output={cluster.output} --error={cluster.error} --time=48:00:00 --mem=8000 --ntasks=4" --use-singularity --singularity-args "-B /home/egrassi/strata:/home/egrassi/strata"
 
+rule recalibrate_plot:
+    input: reference=DATA_DIR+"/GRCh38.d1.vd1.fa", table="{sample}.table", bam="realigned_{sample}.bam", snps="dbsnp.all.vcf.gz", exons=ANNOTATIONS+"/exon_unstranded.bed.gz"
+    output: "{sample}_recal_plots.pdf"
+    singularity: "/home/egrassi/gatk/gatk.img"
+    params: padding=PADDING
+    shell: 
+        """
+        zcat {input.exons} > {output}.bed
+        gatk BaseRecalibrator --interval-padding {params.padding} -R {input.reference} -I {input.bam} --known-sites {input.snps} -O {output}.table -L {output}.bed
+        gatk AnalyzeCovariates -before {input.table} -after {output}.table -plots {output}
+        rm {output}.bed
+        """
+
 # On using mutect2 or the germline caller if one does not have normal samples:
 #https://www.biostars.org/p/283279/
 #according to https://www.biostars.org/p/207536/
 # https://github.com/AstraZeneca-NGS/VarDict
-rule bai:
+rule sorted_bai:
     input: "{whatever}.bam"
-    output: "{whatever}.bam.bai"
+    output: "{whatever}.sorted.bam.bai"
     shell: 
         """
         samtools sort -o {wildcards.whatever}.sorted.bam {input}
         samtools index {wildcards.whatever}.sorted.bam {output}
-        rm {wildcards.whatever}.sorted.bam
         """
+
+
+#[align_calibrate]egrassi@hactarlogin$ seff 30453
+#Job ID: 30453
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Nodes: 1
+#Cores per node: 8
+#CPU Utilized: 00:16:19
+#CPU Efficiency: 11.72% of 02:19:12 core-walltime
+#Job Wall-clock time: 00:17:24
+#Memory Utilized: 840.66 MB
+#Memory Efficiency: 10.51% of 7.81 GB
+#---> add -@ !
 
 # Coverage analyses:
 rule small_coverage:
-    input: interval=ANNOTATIONS+"/{where}_unstranded.bed.gz", bam="markedDup_{sample}.bam", bai="markedDup_{sample}.bam.bai"
+    input: interval=ANNOTATIONS+"/{where}_unstranded.bed.gz", bam="markedDup_{sample}.sorted.bam", bai="markedDup_{sample}.sorted.bam.bai"
     output: "depth/{where}-{sample}.regions.bed.gz"
     params: prefix="depth/{where}-{sample}" 
     shell: 
@@ -167,8 +196,19 @@ rule small_coverage:
         """
 
 
+#Job ID: 30484
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 00:03:26
+#CPU Efficiency: 49.64% of 00:06:55 core-walltime
+#Job Wall-clock time: 00:06:55
+#Memory Utilized: 1.02 GB
+#Memory Efficiency: 13.06% of 7.81 GB
+
 rule large_coverage:
-    input: interval=ANNOTATIONS+"/{where}.bed.gz", bam="markedDup_{sample}.bam", bai="markedDup_{sample}.bam.bai"
+    input: interval=ANNOTATIONS+"/{where}.bed.gz", bam="markedDup_{sample}.sorted.bam", bai="markedDup_{sample}.bam.bai"
     output: "depth/{where}-{sample}.large.regions.bed.gz"
     params: prefix="depth/{where}-{sample}.large" 
     shell: 
@@ -191,3 +231,16 @@ rule:
         """
             samtools view -b -F 1796 {input.bam} | samtools sort -o - -| samtools depth -b <(zcat {input.interval} | bawk '{{print $0,NR}}')  - > {output}
         """
+
+rule coverage_plot:
+    input: cov="depth/{where}-{sample}.samtools", interval=ANNOTATIONS+"/{where}_unstranded.bed.gz"
+    output: "depth/{where}-{sample}.samtools"
+    shell:
+        """
+        Rscript that computes n. of 0 bases (total-present in samtools) then plots an histogram of intervals: 0 1-4 5-149 150... (no_coverage, low_coverage, callable, high_coverage)
+        """
+
+
+
+### can be safely removed in the end;
+# *sorted.bam *sorted.bam.bai
