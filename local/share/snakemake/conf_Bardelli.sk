@@ -2,6 +2,7 @@ ROOT='/home/egrassi' # very nice :(
 PRJ_ROOT=ROOT+'/strata'
 SRC_DIR=PRJ_ROOT+'/local/src'
 DATA_DIR=PRJ_ROOT+'/local/share/data'
+DEBUG="yes"
 
 ## This dataset:
 DATA=DATA_DIR+'/bardelli_wes'

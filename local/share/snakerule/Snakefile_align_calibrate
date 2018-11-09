@@ -154,6 +154,32 @@ rule recalibrate_plot:
         rm {output}.bed
         """
 
+
+## Recalibration, step 1:
+#[align_calibrate]egrassi@hactarlogin$ seff 30510
+#Job ID: 30510
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 01:10:37
+#CPU Efficiency: 98.06% of 01:12:01 core-walltime
+#Job Wall-clock time: 01:12:01
+#Memory Utilized: 1.02 GB
+#Memory Efficiency: 52.05% of 1.95 GB
+## Step 2:
+#[align_calibrate]egrassi@hactarlogin$ seff 30514
+#Job ID: 30514
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 00:51:14
+#CPU Efficiency: 99.81% of 00:51:20 core-walltime
+#Job Wall-clock time: 00:51:20
+#Memory Utilized: 1.03 GB
+#Memory Efficiency: 52.78% of 1.95 GB
+
 # On using mutect2 or the germline caller if one does not have normal samples:
 #https://www.biostars.org/p/283279/
 #according to https://www.biostars.org/p/207536/
@@ -207,39 +233,44 @@ rule small_coverage:
 #Memory Utilized: 1.02 GB
 #Memory Efficiency: 13.06% of 7.81 GB
 
-rule large_coverage:
-    input: interval=ANNOTATIONS+"/{where}.bed.gz", bam="markedDup_{sample}.sorted.bam", bai="markedDup_{sample}.bam.bai"
-    output: "depth/{where}-{sample}.large.regions.bed.gz"
-    params: prefix="depth/{where}-{sample}.large" 
+# --fast-mode is not available in conda's version
+rule all_coverage:
+    input: bam="markedDup_{sample}.sorted.bam", bai="markedDup_{sample}.sorted.bam.bai"
+    output: "depth/{sample}.quantized.bed.gz"
+    params: prefix="depth/{sample}", thread=12
     shell: 
         """
-            samtools index {input.bam}
             mkdir -p depth
-            export MOSDEPTH_Q0=NO_COVERAGE   \
-            export MOSDEPTH_Q1=LOW_COVERAGE  \
-            export MOSDEPTH_Q2=CALLABLE      \
-            export MOSDEPTH_Q3=HIGH_COVERAGE \
-            mosdepth -n --quantize 0:1:5:150: --by <(zcat {input.interval}) {params.prefix} {input.bam}
+            mosdepth -t {params.thread} -n --quantize 0:1:5:10:50:100:150: {params.prefix} {input.bam}
         """
 
-#https://github.com/brentp/mosdepth
-# Coverage analyses:
-rule:
-    input: interval=ANNOTATIONS+"/{where}_unstranded.bed.gz", bam="markedDup_{sample}.bam"
-    output: "depth/{where}-{sample}.samtools"
-    shell: 
+rule split_coverage:
+    input: exons=ANNOTATIONS+"/exon_unstranded.bed.gz", depth="depth/{sample}.quantized.bed.gz"
+    output: exons="depth/{sample}.exons.bed.gz", outof="depth/{sample}.outof.bed.gz"
+    shell:
         """
-            samtools view -b -F 1796 {input.bam} | samtools sort -o - -| samtools depth -b <(zcat {input.interval} | bawk '{{print $0,NR}}')  - > {output}
+            bedtools intersect -u -a {input.depth} -b {input.exons} | gzip > {output.exons}
+            bedtools subtract -sorted -a {input.depth} -b {input.exons} | gzip > {output.outof}
         """
 
 rule coverage_plot:
-    input: cov="depth/{where}-{sample}.samtools", interval=ANNOTATIONS+"/{where}_unstranded.bed.gz"
-    output: "depth/{where}-{sample}.samtools"
-    shell:
-        """
-        Rscript that computes n. of 0 bases (total-present in samtools) then plots an histogram of intervals: 0 1-4 5-149 150... (no_coverage, low_coverage, callable, high_coverage)
-        """
+    input: bed="depth/{sample}.{kind}.bed.gz"
+    output: pdf="depth/{sample}.{kind}.pdf"
+    params: debug=DEBUG
+    script: SRC_DIR+"/coverage_plot.R"
 
+# This was a srun, estimated runtime top 30'
+#[align_calibrate]egrassi@hactarlogin$ seff 30595
+#Job ID: 30595
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 00:10:46
+#CPU Efficiency: 34.99% of 00:30:46 core-walltime
+#Job Wall-clock time: 00:30:46
+#Memory Utilized: 4.62 GB
+#Memory Efficiency: 31.55% of 14.65 GB
 
 
 ### can be safely removed in the end;
