@@ -9,7 +9,7 @@ logisticOut <- snakemake@output[["logistic"]]
 
 mutdata <- read.table(pivotData, sep="\t", header=TRUE)
 averages <- read.table(volData, sep="\t", header=TRUE)
-rownames(averages) <- averages$case
+# rownames(averages) <- averages$case
 rownames(mutdata) <- mutdata[,1]
 mutdata[,1] <- NULL
 
