@@ -9,7 +9,7 @@ logisticOut <- snakemake@output[["logistic"]]
 
 mutdata <- read.table(pivotData, sep="\t", header=TRUE)
 averages <- read.table(volData, sep="\t", header=TRUE)
-# rownames(averages) <- averages$case
+rownames(averages) <- averages$case
 rownames(mutdata) <- mutdata[,1]
 mutdata[,1] <- NULL
 
@@ -43,7 +43,7 @@ onemodel <- function(mut, avg, samples) {
 
 res <- as.data.frame(t(as.data.frame(apply(mutdatafeas, 2, onemodel, averages, rownames(mutdatafeas)))))
 colnames(res) <- c("R2","pval")
-res$adj_pval <- p.adjust(res$pval, method="bonferroni")
+res$adj_pval <- p.adjust(res$pval, method="BH")
 #head(res[order(res[,2]),])
 write.table(res, file=linearOut, sep="\t", quote=FALSE)
 
@@ -60,7 +60,7 @@ classmodel <- function(mut, avg, samples) {
 res2 <- as.data.frame(t(as.data.frame(apply(mutdatafeas, 2, classmodel, averages, rownames(mutdatafeas)))))
 #head(res2[order(res2[,2]),])
 colnames(res2) <- c("AIC","pval")
-res2$adj_pval <- p.adjust(res2$pval, method="bonferroni")
+res2$adj_pval <- p.adjust(res2$pval, method="BH")
 write.table(res2, file=logisticOut, sep="\t", quote=FALSE)
 
 

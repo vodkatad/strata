@@ -2,7 +2,7 @@ include: "conf.sk"
 
 rule muts_table:
     input: MUTS_REDUCED
-    output: "muts_pivot.txt"
+    output: "muts_all_pivot.txt"
     run:
          import pandas
          data = pandas.read_csv(input[0], sep="\t", header=None, names=['pdx','mut'])
