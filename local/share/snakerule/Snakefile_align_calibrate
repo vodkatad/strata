@@ -119,10 +119,9 @@ rule add_chr_to_vcf_porc:
 #[data]egrassi@compute-1-4$ picard CreateSequenceDictionary R=GRCh38.d1.vd1.fa O=GRCh38.d1.vd1.dict
 #[align_calibrate]egrassi@compute-1-4$ time snakemake realigned_CRC0542LMX0B03020TUMD05000.bam --use-singularity --singularity-args "-B /home/egrassi/strata/:/home/egrassi/strata/"
 # --spark-master local[2] to use BaseRecalibratorSpark with 2 threads but it's still beta
-PADDING=100
 rule recalibrate_quality:
     input: bam="markedDup_{sample}.sorted.bam", reference=DATA_DIR+"/GRCh38.d1.vd1.fa", snps="dbsnp.all.vcf.gz", exons=ANNOTATIONS+"/exon_unstranded.bed.gz", bai="markedDup_{sample}.sorted.bam.bai"
-    singularity: "/home/egrassi/gatk/gatk.img"
+    singularity: ROOT+"/gatk/gatk.img"
     output: bam="realigned_{sample}.bam", table="{sample}.table"
     params: padding=PADDING
     shell:
@@ -144,7 +143,7 @@ rule recalibrate_quality:
 rule recalibrate_plot:
     input: reference=DATA_DIR+"/GRCh38.d1.vd1.fa", table="{sample}.table", bam="realigned_{sample}.bam", snps="dbsnp.all.vcf.gz", exons=ANNOTATIONS+"/exon_unstranded.bed.gz"
     output: "{sample}_recal_plots.pdf"
-    singularity: "/home/egrassi/gatk/gatk.img"
+    singularity: ROOT+"/gatk/gatk.img"
     params: padding=PADDING
     shell: 
         """

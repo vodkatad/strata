@@ -1,0 +1,146 @@
+include: "../conf.sk"
+
+# We pad (ignoring end of chrs, is it ok?) exons beforehand because for the other out of exons regions we do not want so use --interval-padding since they are defined
+# on the coverage
+rule exons:
+    input: ANNOTATIONS+"/exon_unstranded.bed.gz"
+    output: "padded_exons.bed"
+    params: padding=PADDING
+    shell: 
+        """
+         zcat {input} | bawk '{{print $1, $2-{params.padding}, $3+{params.padding}}}' > {output}
+        """
+
+rule sufficient_coverage_outof:
+    input: "../align_calibrate/depth/{sample}.outof.bed.gz"
+    output: "callable_outof_{sample}.bed"
+    params: callable=CALLABLE
+    shell: 
+        """
+         zcat {input} | filter_1col 4 <(echo {params.callable} | tr "," "\\n") > {output}
+        """
+
+# wtf tab?
+rule callable:
+    input: exons="padded_exons.bed", outof="callable_outof_{sample}.bed"
+    output: "callable_exons_{sample}.bed"
+    shell:
+        """ 
+            cat {input.exons} {input.outof} | sort -k1,1 -k2,2n | bawk '$4==""{{print $0,NR}}' > {output}.tmp
+            bedtools merge -i {output}.tmp > {output}
+            rm {output}.tmp
+        """
+
+#gatk --java-options "-Xmx2g" Mutect2 \
+#-R hg38/Homo_sapiens_assembly38.fasta \
+#-I tumor.bam \
+#-I normal.bam \
+#-tumor HCC1143_tumor \
+#-normal HCC1143_normal \
+#-pon resources/chr17_pon.vcf.gz \
+#--germline-resource resources/chr17_af-only-gnomad_grch38.vcf.gz \
+#--af-of-alleles-not-in-resource 0.0000025 \
+#--disable-read-filter MateOnSameContigOrNoMappedMateReadFilter \
+#-L chr17plus.interval_list \
+#-O 1_somatic_m2.vcf.gz \
+#-bamout 2_tumor_normal_m2.bam
+#
+## For example, the gnomAD resource af-only-gnomad_grch38.vcf.gz represents ~200k exomes and ~16k genomes and the tutorial data is exome data, so we adjust --af-of-alleles-not-in-resource to 0.0000025 which corresponds to 1/(2*exome samples).
+#gnomad_af=GNOMAD+"/gnomad.forcontamination.exomes.vcf"
+##../align_calibrate/dbsnp.all.vcf.gz
+#gnomad=GNOMAD+"/chr_gnomad.exomes.vcf.bgz"
+rule mutect:
+    input: bam="../align_calibrate/realigned_{sample}.bam", gnomad=GNOMAD+"/af-only-gnomad.hg38.vcf.gz", bed="callable_exons_{sample}.bed", reference=DATA_DIR+"/GRCh38.d1.vd1.fa"
+    output: vcf="{sample}.vcf.gz", bam="{sample}.igv.bam"
+    singularity: ROOT+"/gatk/gatk.img"
+    params: loweraf="0.0000025"
+    shell: 
+        """
+            gatk Mutect2 -tumor {wildcards.sample} -R {input.reference} -I {input.bam} -O {output.vcf} --germline-resource {input.gnomad} -L {input.bed} --af-of-alleles-not-in-resource {params.loweraf} --bam-output {output.bam}
+        """
+    
+#with snptba as germline:
+#Job ID: 31864
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 02:44:50
+#CPU Efficiency: 99.55% of 02:45:35 core-walltime
+#Job Wall-clock time: 02:45:35
+#Memory Utilized: 2.16 GB
+#Memory Efficiency: 13.82% of 15.62 GB
+#
+#with gnomad:
+#Job ID: 31893
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 01:24:15
+#CPU Efficiency: 99.90% of 01:24:20 core-walltime
+#Job Wall-clock time: 01:24:20
+#Memory Utilized: 2.16 GB
+#Memory Efficiency: 73.68% of 2.93 GB
+#
+
+rule getpileup:
+    input: bam="../align_calibrate/realigned_{sample}.bam", gnomad=GNOMAD+"/gnomad.forcontamination.exomes.vcf", bed="callable_exons_{sample}.bed"
+    output: "{sample}.pileup.table"
+    singularity: ROOT+"/gatk/gatk.img"
+    shell: 
+        """
+            gatk GetPileupSummaries -I {input.bam} -V {input.gnomad} -L {input.bed} -O {output}
+
+        """
+
+#Job ID: 31901
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 00:13:30
+#CPU Efficiency: 99.75% of 00:13:32 core-walltime
+#Job Wall-clock time: 00:13:32
+#Memory Utilized: 1006.37 MB
+#Memory Efficiency: 33.55% of 2.93 GB
+
+rule calculatecontamination:
+    input: "{sample}.pileup.table"
+    output: "{sample}.contamination.table"
+    singularity: ROOT+"/gatk/gatk.img"
+    shell:
+        """
+            gatk CalculateContamination  -I {input} -O {output}
+        """
+
+#Job ID: 31904
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 00:00:08
+#CPU Efficiency: 80.00% of 00:00:10 core-walltime
+#Job Wall-clock time: 00:00:10
+#Memory Utilized: 0.00 MB (estimated maximum)
+#Memory Efficiency: 0.00% of 2.93 GB (2.93 GB/node)
+
+rule filtercalls:
+    input: vcf="{sample}.vcf.gz", contamination="{sample}.contamination.table"
+    output: "{sample}.filtered.vcf.gz"
+    singularity: ROOT+"/gatk/gatk.img"
+    shell:
+        """
+            gatk FilterMutectCalls -V {input.vcf} --contamination-table {input.contamination} -O {output}
+        """
+
+#Job ID: 31909
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 00:00:16
+#CPU Efficiency: 88.89% of 00:00:18 core-walltime
+#Job Wall-clock time: 00:00:18
+#Memory Utilized: 0.00 MB (estimated maximum)
+#Memory Efficiency: 0.00% of 2.93 GB (2.93 GB/node)
