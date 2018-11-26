@@ -19,7 +19,7 @@ def produce_pairs(wildcards):
 # TODO RERUn with:
 #      -K INT        process INT input bases in each batch regardless of nThreads (for reproducibility) []
 #      -Y            use soft clipping for supplementary alignments
-# -p            smart pairing (ignoring in2.fq) ????
+# -p            smart pairing (ignoring in2.fq)  nonono!
 
 # -v 3 is the default so it's not needed
 # Why -T 0? Where did I get it? https://docs.gdc.cancer.gov/Data/PDF/Data_UG.pdf
@@ -35,7 +35,7 @@ rule bwa_mem:
         id=$(echo $header | cut -f 1-4 -d":" | sed 's/^@//' | sed 's/:/_/g')
         smnh=$(echo $header | grep -Eo "[ATGCN]+$")
         sm={wildcards.sample}
-        bwa mem -R "@RG\\tID:$id\\tSM:$sm\\tLB:$sm"_"$id"_"$smnh\\tPL:ILLUMINA" -t {params.cores} -T 0 {params.ref} {input.fastq1} {input.fastq2} | samtools view -Shb -o {output} 
+        bwa mem -R "@RG\\tID:$id\\tSM:$sm\\tLB:$sm"_"$id"_"$smnh\\tPL:ILLUMINA" -t {params.cores} -K 100000000 -Y {params.ref} {input.fastq1} {input.fastq2} | samtools view -Shb -o {output} 
         """
 
 #Nodes: 1
@@ -132,6 +132,8 @@ rule recalibrate_quality:
             rm {output.bam}.bed
         """
 
+#ruleorder: recalibrate_quality > mark_duplicates_picard > bwa_mem
+
 #[align_calibrate]egrassi@compute-1-4$ time  snakemake --use-singularity --singularity-args "-B /home/egrassi/strata:/home/egrassi/strata" realigned_CRC0542LMX0B03020TUMD05000.bam 
 # started but was too slow to be left on srun over night :(
 #hoping for the best
@@ -185,11 +187,12 @@ rule recalibrate_plot:
 # https://github.com/AstraZeneca-NGS/VarDict
 rule sorted_bai:
     input: "{whatever}.bam"
-    output: "{whatever}.sorted.bam.bai"
+    output: bai="{whatever}.sorted.bam.bai", bam="{whatever}.sorted.bam"
+    params: threads="8"
     shell: 
         """
-        samtools sort -o {wildcards.whatever}.sorted.bam {input}
-        samtools index {wildcards.whatever}.sorted.bam {output}
+        samtools sort --threads {params.threads} -o {output.bam} {input}
+        samtools index {output.bam} {output.bai}
         """
 
 
@@ -234,7 +237,7 @@ rule small_coverage:
 
 # --fast-mode is not available in conda's version
 rule all_coverage:
-    input: bam="markedDup_{sample}.sorted.bam", bai="markedDup_{sample}.sorted.bam.bai"
+    input: bam="realigned_{sample}.sorted.bam", bai="realigned_{sample}.sorted.bam.bai"
     output: "depth/{sample}.quantized.bed.gz"
     params: prefix="depth/{sample}", thread=12
     shell: 

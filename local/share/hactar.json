@@ -7,10 +7,75 @@
         "nodes": "1",
         "job-name": "{rule}.{wildcards}",
         "output": "{rule}.{wildcards}.out",
-        "error": "{rule}.{wildcards}.err"
+        "error": "{rule}.{wildcards}.err",
+        "time": "00:30:00",
+        "mem": "1000",
+        "ntasks": "1"
     },
-    "cellrangercounts":
+    "bwa_mem":
     {
-        "time": "24:00:00"
-    }
-}
+        "time": "02:30:00",
+        "mem": "6000",
+        "ntasks": "4"
+    },
+   "mark_duplicates_picard":
+    {
+        "time": "01:00:00",
+        "mem": "10000",
+        "ntasks": "12"
+    },
+    "recalibrate_quality": 
+    {
+        "time": "02:00:00",
+        "mem": "1500",
+        "ntasks": "1"
+    },
+    "recalibrate_plot": 
+    {
+        "time": "01:30:00",
+        "mem": "1500",
+        "ntasks": "1"
+    },
+    "sorted_bai": 
+    {
+        "time": "01:00:00",
+        "mem": "1000",
+        "ntasks": "8"
+    },
+    "all_coverage":
+    {
+        "time": "01:00:00",
+        "mem": "1000",
+        "ntasks": "12"
+    },
+    "split_coverage":
+    {
+        "time": "01:00:00",
+        "mem": "1000",
+        "ntasks": "1"
+    },
+    "mutect":
+    {
+        "time": "02:00:00",
+        "mem": "2500",
+        "ntasks": "1"
+    },
+    "getpileup":
+    {
+        "time": "00:30:00",
+        "mem": "1500",
+        "ntasks": "1"
+    },
+    "calculatecontamination":
+    {
+        "time": "00:30:00",
+        "mem": "800",
+        "ntasks": "1"
+    },
+    "filtercalls":
+    {
+        "time": "00:30:00",
+        "mem": "800",
+        "ntasks": "1"
+    },
+}   

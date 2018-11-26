@@ -6,6 +6,7 @@ DEBUG="yes"
 
 ## This dataset:
 DATA=DATA_DIR+'/bardelli_wes'
+
 #[data]egrassi@hactarlogin$ ls *1.fastq.gz | perl -ane '/(CRC[0-9A-Z]+)/; print "\"$1\"",';
 SAMPLES=["CRC0542LMX0B01001TUMD11000","CRC0542LMX0B02001TUMD02000","CRC0542LMX0B02003TUMD02000","CRC0542LMX0B03020TUMD05000","CRC0542LMX0B04006TUMD02000"]
 FASTQ_SUFFIX=".xenome_graft_{pair}.fastq.gz"
@@ -17,6 +18,9 @@ CORES="4"
 PATTERNED=2500 
 # HiSeq4000, otherwise 100 for unpatterned
 #–o recal.bam
+
+wildcard_constraints:
+    sample="[a-zA-Z0-9]+"
 
 rule all_something:
     input: expand("{sample}.{{something}}", sample=SAMPLES)
