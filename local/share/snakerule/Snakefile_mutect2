@@ -127,11 +127,11 @@ rule calculatecontamination:
 
 rule filtercalls:
     input: vcf="{sample}.vcf.gz", contamination="{sample}.contamination.table"
-    output: "{sample}.filtered.vcf.gz"
+    output: vcf="{sample}.filtered.vcf.gz", stats="{sample}_filtering_stats.tsv"
     singularity: ROOT+"/gatk/gatk.img"
     shell:
         """
-            gatk FilterMutectCalls -V {input.vcf} --contamination-table {input.contamination} -O {output}
+            gatk FilterMutectCalls -V {input.vcf} --contamination-table {input.contamination} -O {output.vcf} --stats {output.stats}
         """
 
 #Job ID: 31909
