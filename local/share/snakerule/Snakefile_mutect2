@@ -10,10 +10,9 @@ subworkflow aligncalibrateflow:
 rule exons:
     input: ANNOTATIONS+"/exon_unstranded.bed.gz"
     output: "padded_exons.bed"
-    params: padding=PADDING
     shell: 
         """
-         zcat {input} | bawk '{{print $1, $2-{params.padding}, $3+{params.padding}}}' > {output}
+         zcat {input} | bawk '{{print $1, $2, $3}}' > {output}
         """
 
 rule sufficient_coverage_outof:
@@ -58,10 +57,10 @@ rule mutect:
     input: bam=aligncalibrateflow("../align_calibrate/realigned_{sample}.bam"), gnomad=GNOMAD+"/af-only-gnomad.hg38.vcf.gz", bed="callable_exons_{sample}.bed", reference=DATA_DIR+"/GRCh38.d1.vd1.fa"
     output: vcf="{sample}.vcf.gz", bam="{sample}.igv.bam"
     singularity: ROOT+"/gatk/gatk.img"
-    params: loweraf="0.0000025"
+    params: loweraf="0.0000025", padding=PADDING
     shell: 
         """
-            gatk Mutect2 -tumor {wildcards.sample} -R {input.reference} -I {input.bam} -O {output.vcf} --germline-resource {input.gnomad} -L {input.bed} --af-of-alleles-not-in-resource {params.loweraf} --bam-output {output.bam}
+            gatk Mutect2 -tumor {wildcards.sample} -R {input.reference} -I {input.bam} -O {output.vcf} --interval-padding {params.padding} --germline-resource {input.gnomad} -L {input.bed} --af-of-alleles-not-in-resource {params.loweraf} --bam-output {output.bam}
         """
     
 #with snptba as germline:
@@ -93,9 +92,10 @@ rule getpileup:
     input: bam=aligncalibrateflow("../align_calibrate/realigned_{sample}.bam"), gnomad=GNOMAD+"/gnomad.forcontamination.exomes.vcf", bed="callable_exons_{sample}.bed"
     output: "{sample}.pileup.table"
     singularity: ROOT+"/gatk/gatk.img"
+    params: padding=PADDING
     shell: 
         """
-            gatk GetPileupSummaries -I {input.bam} -V {input.gnomad} -L {input.bed} -O {output}
+            gatk GetPileupSummaries -I {input.bam} -V {input.gnomad} -L {input.bed} -O {output} --interval-padding {params.padding}
 
         """
 

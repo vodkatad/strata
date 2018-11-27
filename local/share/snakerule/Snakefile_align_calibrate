@@ -46,6 +46,18 @@ rule bwa_mem:
 #Memory Utilized: 5.56 GB
 #Memory Efficiency: 71.20% of 7.81 GB
 
+# New options -K -Y (?) and a single core, you idiot!
+#Job ID: 32017
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 05:34:19
+#CPU Efficiency: 99.77% of 05:35:06 core-walltime
+#Job Wall-clock time: 05:35:06
+#Memory Utilized: 6.24 GB
+#Memory Efficiency: 63.85% of 9.77 GB
+
 
 # We skip this rule cause:
 # Task is assuming query-sorted input so that the Secondary and Supplementary reads get marked correctly

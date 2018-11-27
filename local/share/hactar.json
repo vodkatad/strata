@@ -14,14 +14,14 @@
     },
     "bwa_mem":
     {
-        "time": "02:30:00",
-        "mem": "6000",
+        "time": "07:00:00",
+        "mem": "8000",
         "ntasks": "4"
     },
    "mark_duplicates_picard":
     {
         "time": "01:00:00",
-        "mem": "10000",
+        "mem": "11000",
         "ntasks": "12"
     },
     "recalibrate_quality": 
