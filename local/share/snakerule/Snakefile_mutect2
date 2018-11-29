@@ -5,16 +5,6 @@ subworkflow aligncalibrateflow:
     workdir: "../align_calibrate"
     snakefile: "../align_calibrate/Snakefile"
 
-# We pad (ignoring end of chrs, is it ok?) exons beforehand because for the other out of exons regions we do not want so use --interval-padding since they are defined
-# on the coverage
-rule exons:
-    input: ANNOTATIONS+"/exon_unstranded.bed.gz"
-    output: "padded_exons.bed"
-    shell: 
-        """
-         zcat {input} | bawk '{{print $1, $2, $3}}' > {output}
-        """
-
 rule sufficient_coverage_outof:
     input: aligncalibrateflow("../align_calibrate/depth/{sample}.outof.bed.gz")
     output: "callable_outof_{sample}.bed"
@@ -26,7 +16,7 @@ rule sufficient_coverage_outof:
 
 # wtf tab?
 rule callable:
-    input: exons="padded_exons.bed", outof="callable_outof_{sample}.bed"
+    input: exons=SEXONS, outof="callable_outof_{sample}.bed"
     output: "callable_exons_{sample}.bed"
     shell:
         """ 

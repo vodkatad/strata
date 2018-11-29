@@ -127,21 +127,28 @@ rule add_chr_to_vcf_porc:
         tabix -p vcf {output}
         """
 
+
+rule sort_targeted_porc:
+    input: bed=EXONS, fai=DATA_DIR+"/GRCh38.d1.vd1.fa.fai" 
+    output: SEXONS
+    shell:
+        """
+            bedtools sort -faidx {input.fai} -i {input.bed} > {output}
+        """
+
 #[data]egrassi@compute-1-4$ samtools faidx GRCh38.d1.vd1.fa
 #[data]egrassi@compute-1-4$ picard CreateSequenceDictionary R=GRCh38.d1.vd1.fa O=GRCh38.d1.vd1.dict
 #[align_calibrate]egrassi@compute-1-4$ time snakemake realigned_CRC0542LMX0B03020TUMD05000.bam --use-singularity --singularity-args "-B /home/egrassi/strata/:/home/egrassi/strata/"
 # --spark-master local[2] to use BaseRecalibratorSpark with 2 threads but it's still beta
 rule recalibrate_quality:
-    input: bam="markedDup_{sample}.sorted.bam", reference=DATA_DIR+"/GRCh38.d1.vd1.fa", snps="dbsnp.all.vcf.gz", exons=ANNOTATIONS+"/exon_unstranded.bed.gz", bai="markedDup_{sample}.sorted.bam.bai"
+    input: bam="markedDup_{sample}.sorted.bam", reference=DATA_DIR+"/GRCh38.d1.vd1.fa", snps="dbsnp.all.vcf.gz", bed=SEXONS, bai="markedDup_{sample}.sorted.bam.bai"
     singularity: ROOT+"/gatk/gatk.img"
     output: bam="realigned_{sample}.bam", table="{sample}.table"
     params: padding=PADDING
     shell:
         """
-            zcat {input.exons} > {output.bam}.bed
-            gatk BaseRecalibrator --interval-padding {params.padding} -R {input.reference} -I {input.bam} --known-sites {input.snps} -O {output.table} -L {output.bam}.bed 2> {output.table}.slog
+            gatk BaseRecalibrator --interval-padding {params.padding} -R {input.reference} -I {input.bam} --known-sites {input.snps} -O {output.table} -L {input.bed} 2> {output.table}.slog
             gatk ApplyBQSR -R {input.reference} -I {input.bam} --bqsr-recal-file  {output.table} -O {output.bam} --create-output-bam-index true 2> {output.bam}.slog
-            rm {output.bam}.bed
         """
 
 #ruleorder: recalibrate_quality > mark_duplicates_picard > bwa_mem
@@ -155,16 +162,14 @@ rule recalibrate_quality:
 #[align_calibrate]egrassi@hactarlogin$ snakemake -j 1 CRC0542LMX0B03020TUMD05000.placeholder --cluster-config ../../../local/share/hactar.json --cluster "sbatch --mail-user={cluster.mail-user} --mail-type={cluster.mail-type} --partition={cluster.partition} --nodes={cluster.nodes} --job-name={cluster.job-name} --output={cluster.output} --error={cluster.error} --time=48:00:00 --mem=8000 --ntasks=4" --use-singularity --singularity-args "-B /home/egrassi/strata:/home/egrassi/strata"
 
 rule recalibrate_plot:
-    input: reference=DATA_DIR+"/GRCh38.d1.vd1.fa", table="{sample}.table", bam="realigned_{sample}.bam", snps="dbsnp.all.vcf.gz", exons=ANNOTATIONS+"/exon_unstranded.bed.gz"
+    input: reference=DATA_DIR+"/GRCh38.d1.vd1.fa", table="{sample}.table", bam="realigned_{sample}.bam", snps="dbsnp.all.vcf.gz", bed=SEXONS
     output: "{sample}_recal_plots.pdf"
     singularity: ROOT+"/gatk/gatk.img"
     params: padding=PADDING
     shell: 
         """
-        zcat {input.exons} > {output}.bed
-        gatk BaseRecalibrator --interval-padding {params.padding} -R {input.reference} -I {input.bam} --known-sites {input.snps} -O {output}.table -L {output}.bed
+        gatk BaseRecalibrator --interval-padding {params.padding} -R {input.reference} -I {input.bam} --known-sites {input.snps} -O {output}.table -L {input.bed}
         gatk AnalyzeCovariates -before {input.table} -after {output}.table -plots {output}
-        rm {output}.bed
         """
 
 
@@ -222,31 +227,6 @@ rule sorted_bai:
 #Memory Efficiency: 10.51% of 7.81 GB
 #---> add -@ !
 
-# Coverage analyses:
-rule small_coverage:
-    input: interval=ANNOTATIONS+"/{where}_unstranded.bed.gz", bam="markedDup_{sample}.sorted.bam", bai="markedDup_{sample}.sorted.bam.bai"
-    output: "depth/{where}-{sample}.regions.bed.gz"
-    params: prefix="depth/{where}-{sample}" 
-    shell: 
-        """
-            mkdir -p depth
-            zcat {input.interval} > {params.prefix}.tmp
-            mosdepth --by {params.prefix}.tmp {params.prefix} {input.bam}
-            rm {params.prefix}.tmp
-        """
-
-
-#Job ID: 30484
-#Cluster: hactar
-#User/Group: egrassi/egrassi
-#State: COMPLETED (exit code 0)
-#Cores: 1
-#CPU Utilized: 00:03:26
-#CPU Efficiency: 49.64% of 00:06:55 core-walltime
-#Job Wall-clock time: 00:06:55
-#Memory Utilized: 1.02 GB
-#Memory Efficiency: 13.06% of 7.81 GB
-
 # --fast-mode is not available in conda's version
 rule all_coverage:
     input: bam="realigned_{sample}.sorted.bam", bai="realigned_{sample}.sorted.bam.bai"
@@ -259,7 +239,7 @@ rule all_coverage:
         """
 
 rule split_coverage:
-    input: exons=ANNOTATIONS+"/exon_unstranded.bed.gz", depth="depth/{sample}.quantized.bed.gz"
+    input: exons=SEXONS, depth="depth/{sample}.quantized.bed.gz"
     output: exons="depth/{sample}.exons.bed.gz", outof="depth/{sample}.outof.bed.gz"
     shell:
         """

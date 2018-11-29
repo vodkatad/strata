@@ -6,7 +6,8 @@ DEBUG="yes"
 
 ## This dataset:
 DATA=DATA_DIR+'/bardelli_wes'
-
+EXONS=DATA+'/PJ1807203_covered.bed'
+SEXONS='PJ1807203_sorted.bed'
 #[data]egrassi@hactarlogin$ ls *1.fastq.gz | perl -ane '/(CRC[0-9A-Z]+)/; print "\"$1\"",';
 SAMPLES=["CRC0542LMX0B01001TUMD11000","CRC0542LMX0B02001TUMD02000","CRC0542LMX0B02003TUMD02000","CRC0542LMX0B03020TUMD05000","CRC0542LMX0B04006TUMD02000"]
 FASTQ_SUFFIX=".xenome_graft_{pair}.fastq.gz"

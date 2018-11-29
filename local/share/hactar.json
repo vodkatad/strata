@@ -38,20 +38,20 @@
     },
     "sorted_bai": 
     {
-        "time": "01:00:00",
-        "mem": "1000",
+        "time": "03:00:00",
+        "mem": "10000",
         "ntasks": "8"
     },
     "all_coverage":
     {
-        "time": "01:00:00",
-        "mem": "1000",
+        "time": "00:30:00",
+        "mem": "10000",
         "ntasks": "12"
     },
     "split_coverage":
     {
-        "time": "01:00:00",
-        "mem": "1000",
+        "time": "00:30:00",
+        "mem": "400",
         "ntasks": "1"
     },
     "mutect":
