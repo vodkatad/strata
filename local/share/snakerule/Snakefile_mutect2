@@ -16,11 +16,11 @@ rule sufficient_coverage_outof:
 
 # wtf tab?
 rule callable:
-    input: exons=SEXONS, outof="callable_outof_{sample}.bed"
+    input: exons=SSEXONS, outof="callable_outof_{sample}.bed", fai=DATA_DIR+"/GRCh38.d1.vd1.fa.fai"
     output: "callable_exons_{sample}.bed"
     shell:
         """ 
-            cat {input.exons} {input.outof} | sort -k1,1 -k2,2n | bawk '$4==""{{print $0,NR}}' > {output}.tmp
+            cat {input.exons} {input.outof} | bedtools sort -faidx {input.fai} -i - > {output}.tmp
             bedtools merge -i {output}.tmp > {output}
             rm {output}.tmp
         """
