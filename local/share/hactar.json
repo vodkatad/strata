@@ -78,4 +78,16 @@
         "mem": "800",
         "ntasks": "1"
     },
+    "artifacts":
+    {
+        "time": "01:00:00",
+        "mem": "3500",
+        "ntasks": "1"
+    },
+    "filterOrientation":
+    {
+        "time": "00:30:00",
+        "mem": "400",
+        "ntasks": "1"
+    }
 }   

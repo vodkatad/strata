@@ -145,6 +145,55 @@ rule filtercalls:
 #Memory Efficiency: 0.00% of 2.93 GB (2.93 GB/node)
 #
 #
-#TODO:
-#- artifacts
-#- setup https://gatkforums.broadinstitute.org/gatk/discussion/11315/off-label-workflow-to-simply-call-differences-in-two-samples (without PON...)
+
+
+#- artifacts: removed bed interval due to format requirements and who cares and dbsnp due to a nullpointerexception (...)
+rule artifacts:
+    input: bam=aligncalibrateflow("../align_calibrate/realigned_{sample}.bam"), reference=DATA_DIR+"/GRCh38.d1.vd1.fa"
+    output: "{sample}.artifacts.pre_adapter_summary_metrics"
+    singularity: ROOT+"/gatk/gatk.img"
+    shell:
+        """
+            gatk CollectSequencingArtifactMetrics -R {input.reference} -I {input.bam} -O {wildcards.sample}.artifacts
+        """
+
+
+#Job ID: 33044
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 00:16:39
+#CPU Efficiency: 99.50% of 00:16:44 core-walltime
+#Job Wall-clock time: 00:16:44
+#Memory Utilized: 2.10 GB
+#Memory Efficiency: 53.70% of 3.91 GB
+#
+rule filterOrientation:
+    input: vcf="{sample}.filtered.vcf.gz", artifact="{sample}.artifacts.pre_adapter_detail_metrics"
+    output: vcf="{sample}.bifiltered.vcf.gz"
+    singularity: ROOT+"/gatk/gatk.img"
+    shell:
+        """
+            gatk FilterByOrientationBias --artifact-modes G/T -P {input.artifact} -V {input.vcf} -O {output}
+        """
+
+
+#Job ID: 33065
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 00:00:19
+#CPU Efficiency: 82.61% of 00:00:23 core-walltime
+#Job Wall-clock time: 00:00:23
+#Memory Utilized: 0.00 MB (estimated maximum)
+#Memory Efficiency: 0.00% of 3.91 GB (3.91 GB/node)
+#
+rule passFilter:
+    input: "{sample}.filtered.vcf.gz"
+    output: "{sample}.pass.vcf.gz"
+    shell:
+        """
+        zcat {input} |  awk '/^#/ || $7=="PASS"' | bgzip > {output}
+        """ 

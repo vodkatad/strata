@@ -4,6 +4,7 @@ SRC_DIR=PRJ_ROOT+"local/src/"
 
 BASE=PRJ_ROOT+"local/share/data/pre_irino/"
 MUTS=BASE+"DTB_WESdata_CompleteStudy_muts.txt"
+MMUTS=BASE+"DTB_WESdata_CompleteStudy_muts_manualfixes.txt"
 MUTS_GENE_REDUCED=BASE+"DTB_WESdata_CompleteStudy_muts_genes.txt"
 MUTS_REDUCED=BASE+"/DTB_WESdata_CompleteStudy_muts_reduced.txt"
 SANGER=BASE+"DTB_TargetedNGS_SangerInstitute_DriverMutations.txt"

@@ -73,3 +73,29 @@ rule models:
     params: debug=DEBUG, pdx="pdx", cutoff=3 
     script: SRC_DIR+"models_vol_pivot.R"
 
+
+#### WES vs Sanger comparisons #####
+# WES is hg18, Sanger hg19
+# TODO translate to python
+#(base) [exomes_pre]egrassi@hactarlogin$ liftOver sanger_vs_wes.wes ../../local/share//data/pre_irino/hg18ToHg19.over.chain.gz sanger_vs_wes.wes.hg19 sanger_vs_wes.wes.miss
+
+rule align_muts:
+    input: sanger=SANGER, WES=MMUTS
+    output: sanger="sanger_vs_wes.sanger",wes="sanger_vs_wes.wes"
+    shell:
+        """
+          grep LMX {input.sanger} | perl -wane '$ch="chr".$F[3]; $b=$F[4]; $e=$b+1;
+          $f = $F[5]; $s = $F[6];
+          @ff = split("",$f); @ss = split("",$s);
+          if ($ff[0] eq $ss[0]) {{
+            $f = substr($f, 1);
+            $s = substr($s, 1);
+            $b +=1;
+            $e +=1;
+          }}
+          $n=substr($F[0],0,7)."-".$f."_".$s."@".$F[7];
+          print "$ch\\t$b\\t$e\\t$n\\n"' > {output.sanger}
+          cut -f 2,4,7 {input.WES} | sed 1d  | tr ":" "_" | perl -wane '@c=split("_", $F[2],-1); @co = split("-", $c[1]); $chr=$c[0]; $b=$co[0]; $e=$b+1;
+          $n = $F[0]."-".$c[2]."_".$c[3]."@".$F[1];   
+          print "$chr\\t$b\\t$e\\t$n\\n"' > {output.wes}
+        """

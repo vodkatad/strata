@@ -163,7 +163,7 @@ rule recalibrate_quality:
 
 rule recalibrate_plot:
     input: reference=DATA_DIR+"/GRCh38.d1.vd1.fa", table="{sample}.table", bam="realigned_{sample}.bam", snps="dbsnp.all.vcf.gz", bed=SEXONS
-    output: "{sample}_recal_plots.pdf"
+    output: "{sample}.recal_plots.pdf"
     singularity: ROOT+"/gatk/gatk.img"
     params: padding=PADDING
     shell: 
