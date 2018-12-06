@@ -38,3 +38,5 @@ CALLABLE="5:10,10:50,50:100,100:150,150:inf"
 PADDING=100
 
 GNOMAD=ROOT+"/common/task/annotations/dataset/gnomad"
+
+VEP_CACHE_DIR=ROOT+"/common/task/annotations/dataset/VEP"
