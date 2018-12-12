@@ -5,25 +5,25 @@ subworkflow aligncalibrateflow:
     workdir: "../align_calibrate"
     snakefile: "../align_calibrate/Snakefile"
 
-rule sufficient_coverage_outof:
-    input: aligncalibrateflow("../align_calibrate/depth/{sample}.outof.bed.gz")
-    output: "callable_outof_{sample}.bed"
-    params: callable=CALLABLE
-    shell: 
-        """
-         zcat {input} | filter_1col 4 <(echo {params.callable} | tr "," "\\n") > {output}
-        """
+#rule sufficient_coverage_outof:
+#    input: aligncalibrateflow("../align_calibrate/depth/{sample}.outof.bed.gz")
+#    output: "callable_outof_{sample}.bed"
+#    params: callable=CALLABLE
+#    shell: 
+#        """
+#         zcat {input} | filter_1col 4 <(echo {params.callable} | tr "," "\\n") > {output}
+#        """
 
 # wtf tab?
-rule callable:
-    input: exons=SSEXONS, outof="callable_outof_{sample}.bed", fai=DATA_DIR+"/GRCh38.d1.vd1.fa.fai"
-    output: "callable_exons_{sample}.bed"
-    shell:
-        """ 
-            cat {input.exons} {input.outof} | bedtools sort -faidx {input.fai} -i - > {output}.tmp
-            bedtools merge -i {output}.tmp > {output}
-            rm {output}.tmp
-        """
+#rule callable:
+#    input: exons=SSEXONS, outof="callable_outof_{sample}.bed", fai=DATA_DIR+"/GRCh38.d1.vd1.fa.fai"
+#    output: "callable_exons_{sample}.bed"
+#    shell:
+#        """ 
+#            cat {input.exons} {input.outof} | bedtools sort -faidx {input.fai} -i - > {output}.tmp
+#            bedtools merge -i {output}.tmp > {output}
+#            rm {output}.tmp
+#        """
 
 #gatk --java-options "-Xmx2g" Mutect2 \
 #-R hg38/Homo_sapiens_assembly38.fasta \
@@ -44,15 +44,15 @@ rule callable:
 ##../align_calibrate/dbsnp.all.vcf.gz
 #gnomad=GNOMAD+"/chr_gnomad.exomes.vcf.bgz"
 ## add --dbsnp and --comp
-rule mutect:
-    input: bam=aligncalibrateflow("../align_calibrate/realigned_{sample}.bam"), gnomad=GNOMAD+"/af-only-gnomad.hg38.vcf.gz", bed="callable_exons_{sample}.bed", reference=DATA_DIR+"/GRCh38.d1.vd1.fa"
-    output: vcf="{sample}.vcf.gz", bam="{sample}.igv.bam"
-    singularity: ROOT+"/gatk/gatk.img"
-    params: loweraf="0.0000025", padding=PADDING
-    shell: 
-        """
-            gatk Mutect2 -tumor {wildcards.sample} -R {input.reference} -I {input.bam} -O {output.vcf} --interval-padding {params.padding} --germline-resource {input.gnomad} -L {input.bed} --af-of-alleles-not-in-resource {params.loweraf} --bam-output {output.bam}
-        """
+#rule mutect:
+#    input: bam=aligncalibrateflow("../align_calibrate/realigned_{sample}.bam"), gnomad=GNOMAD+"/af-only-gnomad.hg38.vcf.gz", bed="callable_exons_{sample}.bed", reference=DATA_DIR+"/GRCh38.d1.vd1.fa"
+#    output: vcf="{sample}.vcf.gz", bam="{sample}.igv.bam"
+#    singularity: ROOT+"/gatk/gatk.img"
+#    params: loweraf="0.0000025", padding=PADDING
+#    shell: 
+#        """
+#            gatk Mutect2 -tumor {wildcards.sample} -R {input.reference} -I {input.bam} -O {output.vcf} --interval-padding {params.padding} --germline-resource {input.gnomad} -L {input.bed} --af-of-alleles-not-in-resource {params.loweraf} --bam-output {output.bam}
+#        """
     
 #with snptba as germline:
 #Job ID: 31864
@@ -79,16 +79,15 @@ rule mutect:
 #Memory Efficiency: 73.68% of 2.93 GB
 #
 
-rule getpileup:
-    input: bam=aligncalibrateflow("../align_calibrate/realigned_{sample}.bam"), gnomad=GNOMAD+"/gnomad.forcontamination.exomes.vcf", bed="callable_exons_{sample}.bed"
-    output: "{sample}.pileup.table"
-    singularity: ROOT+"/gatk/gatk.img"
-    params: padding=PADDING
-    shell: 
-        """
-            gatk GetPileupSummaries -I {input.bam} -V {input.gnomad} -L {input.bed} -O {output} --interval-padding {params.padding}
-
-        """
+#rule getpileup:
+#    input: bam=aligncalibrateflow("../align_calibrate/realigned_{sample}.bam"), gnomad=GNOMAD+"/gnomad.forcontamination.exomes.vcf", bed="callable_exons_{sample}.bed"
+#    output: "{sample}.pileup.table"
+#    singularity: ROOT+"/gatk/gatk.img"
+#    params: padding=PADDING
+#    shell: 
+#        """
+#            gatk GetPileupSummaries -I {input.bam} -V {input.gnomad} -L {input.bed} -O {output} --interval-padding {params.padding}
+#        """
 
 #Job ID: 31901
 #Cluster: hactar
@@ -149,14 +148,14 @@ rule filtercalls:
 
 
 #- artifacts: removed bed interval due to format requirements and who cares and dbsnp due to a nullpointerexception (...)
-rule artifacts:
-    input: bam=aligncalibrateflow("../align_calibrate/realigned_{sample}.bam"), reference=DATA_DIR+"/GRCh38.d1.vd1.fa"
-    output: "{sample}.artifacts.pre_adapter_summary_metrics"
-    singularity: ROOT+"/gatk/gatk.img"
-    shell:
-        """
-            gatk CollectSequencingArtifactMetrics -R {input.reference} -I {input.bam} -O {wildcards.sample}.artifacts
-        """
+#rule artifacts:
+#    input: bam=aligncalibrateflow("../align_calibrate/realigned_{sample}.bam"), reference=DATA_DIR+"/GRCh38.d1.vd1.fa"
+#    output: "{sample}.artifacts.pre_adapter_summary_metrics"
+#    singularity: ROOT+"/gatk/gatk.img"
+#    shell:
+#        """
+#            gatk CollectSequencingArtifactMetrics -R {input.reference} -I {input.bam} -O {wildcards.sample}.artifacts
+#        """
 
 
 #Job ID: 33044
@@ -202,24 +201,38 @@ rule passFilter:
         tabix {output}
         """ 
 
+################ we have to filter more
+rule sufficient_coverage_outof:
+    input: aligncalibrateflow("../align_calibrate/depth/{sample}.outof.bed.gz"), aligncalibrateflow("../align_calibrate/depth/{sample}.exons.bed.gz")
+    output: "callable_strict_{sample}.bed"
+    params: callable=CALLABLE_STRICT
+    shell: 
+        """
+         zcat {input} | filter_1col 4 <(echo {params.callable} | tr "," "\\n") |  sort -k1,1 -k2,2n | bedtools merge -i - > {output}
+        """
+
 #     Skip sites where FILTER column does not contain any of the strings listed in LIST. For example, to include only sites which have no filters set, use -f .,PASS. 
 rule merge:
-    input: expand("{sample}.pass.vcf.gz", sample=SAMPLES)
+    input: vcf=expand("{sample}.pass.vcf.gz", sample=SAMPLES), bed=expand("callable_strict_{sample}.bed", sample=SAMPLES)
     output: "merged.vcf"
     shell:
         """
-            bcftools merge --missing-to-ref -m none -i DP:avg,TLOD:min,P_CONTAM:max,P_GERMLINE:min -o {output} {input}
+            bcftools merge --missing-to-ref -m none -i DP:avg,TLOD:min,P_CONTAM:max,P_GERMLINE:min -o {output}.vcf.tmp {input.vcf}
+            bedtools multiinter -i {input.bed} > {output}.bed.tmp
+            bedtools intersect -header -wa -a {output}.vcf.tmp -b {output}.bed.tmp > {output}
+            rm {output}.*.tmp
         """
 
 
 rule VEP:
     input: "merged.vcf"
-    output: txt="merged.vep.txt", html="merged.vep.stats.html", table="merged.table_nomultiallelele"
+    output: txt="merged.vep.txt", html="merged.vep.stats.html", table="merged.table_nomultiallele"
     params: cd=VEP_CACHE_DIR
     shell:
         """
              bcftools annotate -I +'%CHROM:%POS:%REF:%ALT' {input} > {input}.id
              vep -i {input}.id --cache --dir_cache {params.cd} --output_file {output.txt} --stats_file {output.html} --pick
-             cat {input}.id | grep -v "^#" |  perl -ane '@gt=($F[9],$F[10],$F[11],$F[12],$F[13]); $gt=""; foreach $g (@gt) {{ @afs = split(":",$g); if ($afs[2] eq ".") {{$afs[2]=0;}} $gt.=$afs[2]."\t";}}; chop($gt) ; print $F[2]."\\t".$F[0]."_".$F[1]."_".$F[3]."_".$F[4]."\\t".$gt."\\n"' | grep -v "," > {output.table}
-             rm {input}.id
+             cat {input}.id | grep -v "^#" |  perl -ane '@gt=($F[9],$F[10],$F[11],$F[12],$F[13]); $gt=""; foreach $g (@gt) {{ @afs = split(":",$g); if ($afs[2] eq ".") {{$afs[2]=0;}} $gt.=$afs[2]."\t";}} chop($gt) ; print $F[2]."\\t".$F[0]."_".$F[1]."_".$F[3]."_".$F[4]."\\t".$gt."\\n";' | grep -v "," > {output.table}
+             rm {input}.id   
         """
+

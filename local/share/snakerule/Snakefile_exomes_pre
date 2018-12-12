@@ -52,9 +52,20 @@ rule muts_sangerdriver_table:
          pt = pandas.pivot_table(data, index=['pdx'], columns='mut', aggfunc=lambda x: 1, fill_value=0)
          pt.to_csv(output[0], sep='\t', index=True)
 
+rule cnv:
+    input: CNV_GENES
+    output: "cnv_genes_{thr}"
+    shell:
+        """
+        sed 1d {input} | bawk '$3 != "NA" && $3 >= {wildcards.thr} {{print $1,$2"_gain"}} $3 == "NA" {{print $1,$2"_loss"}}' > {output}
+        """
+
+wildcard_constraints:
+    thr="[0-9]"
+
 rule muts_cnv_table:
-    input: CNV
-    output: "muts_cnv_pivot.txt"
+    input: "cnv_genes_{thr}"
+    output: "muts_cnv{thr}_pivot.txt"
     run:
          import pandas
          data = pandas.read_csv(input[0], sep="\t", header=None, names=['pdx','mut'])

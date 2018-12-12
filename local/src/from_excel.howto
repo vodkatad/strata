@@ -1,0 +1,7 @@
+- duplicate sheet dati grezzi, remove column B-D-E (up to w3, keep w0) and export to tsv
+- awk -F"\t" '$1!="" && $1!="Genealogy ID"{print}' CHEMIO_WATERFALL_PLOT_Eugy_20181206.txt > chemio_dec_2019.txt
+- add header pdx     w0      w3      w4      w5      w6
+
+- nothing of this matters, get their already processed data :( --> copy the needed sheet of a given
+week, rename columns in case and perc
+
