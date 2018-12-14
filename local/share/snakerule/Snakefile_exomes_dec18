@@ -59,9 +59,9 @@ rule avg_week:
     script: SRC_DIR+"average_volumes_pdx.R"
 
 rule models:
-    input: volumes=W3, pivot="muts_{type}_pivot.txt"
-    output: linear="{type}_linear_models.tsv", logistic="{type}_logistic_models.tsv"
-    params: debug=DEBUG, pdx="pdx", cutoff=3 
+    input: volumes=W3, pivot="muts_{type}_pivot.txt", msi=MSI, gsannot=GS_DESC
+    output: linear="{type}_linear_models.tsv", logistic="{type}_logistic_models.tsv", linearxls="{type}_linear_models.xls"
+    params: debug=DEBUG, pdx="pdx", cutoff=3, plotdir="{type}_plots"
     script: SRC_DIR+"models_vol_pivot.R"
 
 # TODO R that add gene names to linear models, sorts on pvalue and add extended gene name - plots of volumes 0 vs 1
