@@ -22,6 +22,7 @@ mutdata[,1] <- NULL
 
 annot <- read.table(gs_to_desc, sep="\t", header=FALSE)
 colnames(annot) <- c("gs", "desc")
+annot <- annot[!duplicated(annot$gs, fromLast=T), ]
 
 feasible <- rownames(mutdata)[rownames(mutdata) %in% averages$case]
 mutdatafeas <- mutdata[rownames(mutdata) %in% feasible,]
@@ -70,18 +71,21 @@ res$adj_pval_gene <- p.adjust(res$pval_gene, method="BH")
 mres <- merge(res, annot, by.x="row.names", by.y="gs")
 write.table(res, file=linearOut, sep="\t", quote=FALSE)
 
-res <- res[order(res$pval_gene),]
-WriteXLS(res, ExcelFileName = linearOutXls, row.names = TRUE, col.names = TRUE) 
+mres <- mres[order(mres$pval_gene),]
+rownames(mres) <- mres$Row.names
+mres$Row.names <- NULL
+#(plot) [pre_irino]egrassi@hactarlogin$ cat DTB_WESdata_CompleteStudy_muts.txt | cut -f 4,5 | sed 1d | sort | uniq > gs_desc
+WriteXLS(mres, ExcelFileName = linearOutXls, row.names = TRUE, col.names = TRUE) 
 
 plots <- function(wanted, mut, avg) {
     idx <- which(colnames(mut)==wanted)
     data <- data.frame(mut=mut[,idx], row.names = rownames(mut))
     m <- merge(avg, data, by="row.names")
     m$mut <- as.factor(m$mut)
-    ggplot(m, aes(x = mut, y=perc, fill=mut)) + geom_boxplot() +geom_jitter()+scale_fill_manual(values=c("grey","red"))+theme(text = element_text(size=15))+theme_bw()+ylab("Delta %volume")+xlab(paste0("Mutated ", wanted))
+    ggplot(m, aes(x = mut, y=perc, fill=mut)) + geom_boxplot() +geom_jitter()+scale_fill_manual(values=c("grey","red"))+theme_bw()+theme(text = element_text(size=15))+ylab("Delta %volume")+xlab(paste0("Mutated ", wanted))
     ggsave(paste0(plotdir, "/", wanted, "_boxplot.png"))
     #table(m$class, m$mut)
-    ggplot(m, aes(y=perc,x=reorder(case, -perc),fill=mut))+geom_col()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1))+scale_fill_manual(values=c("grey","red"))+theme_bw()+ylab("Delta %volume")+xlab("Case")
+    ggplot(m, aes(y=perc,x=reorder(case, -perc),fill=mut))+geom_col()+theme_bw()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1))+scale_fill_manual(values=c("grey","red"))+ylab("Delta %volume")+xlab("Case")
     ggsave(paste0(plotdir, "/", wanted, "_waterfall.png"))
 }
 

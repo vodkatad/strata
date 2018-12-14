@@ -10,6 +10,6 @@ VOLUMES=BASE+"/chemio_dec_2019.txt"
 W3=BASE+"/w3.txt"
 CNV_GENES=BASE+"/all_cnv.txt"
 PATHWAYS=BASE+"/signatures_irino_5FU_hl.txt"
-#(base) [pre_irino]egrassi@hactarlogin$ head DTB_WESdata_CompleteStudy_muts.txt | cut -f 4,5 | sed 1d | sort | uniq > gs_desc
+#(plot) [pre_irino]egrassi@hactarlogin$ cat DTB_WESdata_CompleteStudy_muts.txt | cut -f 4,5 | sed 1d | sort | uniq > gs_desc
 GS_DESC=BASE+"/../gs_desc"
 MSI=BASE+"/MSI"
