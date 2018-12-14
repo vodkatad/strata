@@ -1,5 +1,5 @@
 include: "conf.sk"
-
+#3 for other muts file
 rule reduce_mut_gene:
     input: MUTS
     output: "muts_gene.txt"
@@ -67,6 +67,7 @@ rule models:
 # TODO R that add gene names to linear models, sorts on pvalue and add extended gene name - plots of volumes 0 vs 1
 
 #### Pathways
+# do not work with CNV right now, _gain _loss is there.
 rule translate_gene_sign:
     input: muts="muts_{kind}.txt", path=PATHWAYS
     output: "muts_{kind}pathways.txt"
