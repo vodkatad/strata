@@ -4,7 +4,9 @@ library(WriteXLS, quietly=TRUE)
 n_mutated <- snakemake@params[["cutoff"]]
 volData <- snakemake@input[["volumes"]]
 pivotData <- snakemake@input[["pivot"]]
-gs_to_desc <- snakemake@input[["gsannot"]]
+#gs_to_desc <- snakemake@input[["gsannot"]]
+#(plot) [pre_irino]egrassi@hactarlogin$ cat DTB_WESdata_CompleteStudy_muts.txt | cut -f 4,5 | sed 1d | sort | uniq > gs_desc
+# but they were no good with duplicated translations etc
 msi <- snakemake@input[["msi"]]
 debug <- snakemake@params[["debug"]]
 linearOut <- snakemake@output[["linear"]]
@@ -20,9 +22,9 @@ rownames(averages) <- averages$case
 rownames(mutdata) <- mutdata[,1]
 mutdata[,1] <- NULL
 
-annot <- read.table(gs_to_desc, sep="\t", header=FALSE)
-colnames(annot) <- c("gs", "desc")
-annot <- annot[!duplicated(annot$gs, fromLast=T), ]
+#annot <- read.table(gs_to_desc, sep="\t", header=FALSE)
+#colnames(annot) <- c("gs", "desc")
+#annot <- annot[!duplicated(annot$gs, fromLast=T), ]
 
 feasible <- rownames(mutdata)[rownames(mutdata) %in% averages$case]
 mutdatafeas <- mutdata[rownames(mutdata) %in% feasible,]
@@ -67,14 +69,20 @@ res <- as.data.frame(t(as.data.frame(apply(mutdatafeas, 2, onemodel, averages, r
 colnames(res) <- c("R2","pval_global", "pval_gene")
 res$adj_pval_global <- p.adjust(res$pval_global, method="BH")
 res$adj_pval_gene <- p.adjust(res$pval_gene, method="BH")
-#head(res[order(res[,2]),])
-mres <- merge(res, annot, by.x="row.names", by.y="gs")
+res <- res[order(res$pval_gene),]
 write.table(res, file=linearOut, sep="\t", quote=FALSE)
 
-mres <- mres[order(mres$pval_gene),]
-rownames(mres) <- mres$Row.names
-mres$Row.names <- NULL
-#(plot) [pre_irino]egrassi@hactarlogin$ cat DTB_WESdata_CompleteStudy_muts.txt | cut -f 4,5 | sed 1d | sort | uniq > gs_desc
+#mres <- merge(res, annot, by.x="row.names", by.y="gs")
+mres <- res
+library ("AnnotationDbi")
+library("org.Hs.eg.db") # very generic indeed! Bravo Elena!
+mres$desc <- mapIds(org.Hs.eg.db,keys=row.names(mres), column="GENENAME", keytype="SYMBOL", multiVals="first") # first chooses the first value, for description
+# should be good enough.
+# we need to put the last column of mres as second one, the number of columns is fixed but I'm lazy to check by hand
+last <- ncol(mres)
+others <- seq(1, last-1)
+mres <- mres[,c(last, others)]
+
 WriteXLS(mres, ExcelFileName = linearOutXls, row.names = TRUE, col.names = TRUE) 
 
 plots <- function(wanted, mut, avg) {
@@ -85,7 +93,7 @@ plots <- function(wanted, mut, avg) {
     ggplot(m, aes(x = mut, y=perc, fill=mut)) + geom_boxplot() +geom_jitter()+scale_fill_manual(values=c("grey","red"))+theme_bw()+theme(text = element_text(size=15))+ylab("Delta %volume")+xlab(paste0("Mutated ", wanted))
     ggsave(paste0(plotdir, "/", wanted, "_boxplot.png"))
     #table(m$class, m$mut)
-    ggplot(m, aes(y=perc,x=reorder(case, -perc),fill=mut))+geom_col()+theme_bw()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1))+scale_fill_manual(values=c("grey","red"))+ylab("Delta %volume")+xlab("Case")
+    ggplot(m, aes(y=perc,x=reorder(case, -perc),fill=mut))+geom_col()+ylab("Delta %volume")+xlab("Case")+theme_bw()+theme(axis.text.x = element_text(size=15, angle = 90, hjust = 1, vjust=0.5))+scale_fill_manual(values=c("grey","red"))
     ggsave(paste0(plotdir, "/", wanted, "_waterfall.png"))
 }
 
