@@ -231,8 +231,8 @@ rule VEP:
     params: cd=VEP_CACHE_DIR
     shell:
         """
-             bcftools annotate -I +'%CHROM:%POS:%REF:%ALT' {input} > {input.vcf}
-             vep -i {input}.id --cache --dir_cache {params.cd} --output_file {output.txt} --stats_file {output.html} --pick
+             bcftools annotate -I +'%CHROM:%POS:%REF:%ALT' {input} > {output.vcf}
+             vep -i {output.vcf} --cache --dir_cache {params.cd} --output_file {output.txt} --stats_file {output.html} --pick
         """
 
 rule vcf_to_aftable:
