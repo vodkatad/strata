@@ -1,0 +1,21 @@
+DEBUG="yes"
+PRJ_ROOT="../../"
+SRC_DIR=PRJ_ROOT+"local/src/"
+
+BASE=PRJ_ROOT+"local/share/data/pre_irino/dec2018"
+MUTS=BASE+"/all_muts.txt"
+SANGER=BASE+"/../DTB_TargetedNGS_SangerInstitute_DriverMutations.txt"
+CNV=BASE+"/all_cnv.txt"
+VOLUMES=BASE+"/chemio_dec_2019.txt"
+
+#elenagrassi@alberto-hp:~/Dropbox/work/strata/cetuxi$ grep -vi bad cetuxi_dec2018.csv > cetuxi_fingerok_dec2018.txt
+#elenagrassi@alberto-hp:~/Dropbox/work/strata/cetuxi$ tr -d "%" < cetuxi_fingerok_dec2018.txt | cut -f 1,2 > cetuxi_fingerok_dec2018_w3.txt
+#elenagrassi@alberto-hp:~/Dropbox/work/strata/cetuxi$ head cetuxi_fingerok_dec2018_w3.txt 
+#elenagrassi@alberto-hp:~/Dropbox/work/strata/cetuxi$ vi cetuxi_fingerok_dec2018_w3.txt  put case/perc
+
+W3=BASE+"/../cetuxi_fingerok_dec2018_w3.txt"
+CNV_GENES=BASE+"/all_cnv.txt"
+PATHWAYS=BASE+"/signatures_irino_5FU_hl.txt"
+#(plot) [pre_irino]egrassi@hactarlogin$ cat DTB_WESdata_CompleteStudy_muts.txt | cut -f 4,5 | sed 1d | sort | uniq > gs_desc
+GS_DESC=BASE+"/../gs_desc"
+MSI=BASE+"/MSI"

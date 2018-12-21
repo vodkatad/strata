@@ -1,0 +1,15 @@
+DEBUG="yes"
+PRJ_ROOT="../../"
+SRC_DIR=PRJ_ROOT+"local/src/"
+
+BASE=PRJ_ROOT+"local/share/data/pre_irino/dec2018"
+MUTS=BASE+"/../DTB_WESdata_CompleteStudy_muts.txt"
+SANGER=BASE+"/../DTB_TargetedNGS_SangerInstitute_DriverMutations.txt"
+CNV=BASE+"/all_cnv.txt"
+VOLUMES=BASE+"/chemio_dec_2019.txt"
+W3=BASE+"/w3.txt"
+CNV_GENES=BASE+"/all_cnv.txt"
+PATHWAYS=BASE+"/signatures_irino_5FU_hl_calvet.txt"
+#(plot) [pre_irino]egrassi@hactarlogin$ cat DTB_WESdata_CompleteStudy_muts.txt | cut -f 4,5 | sed 1d | sort | uniq > gs_desc
+GS_DESC=BASE+"/../gs_desc"
+MSI=BASE+"/MSI"
