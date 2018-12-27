@@ -216,10 +216,11 @@ rule sufficient_coverage_outof_strict:
 rule merge:
     input: vcf=expand("{sample}.pass.vcf.gz", sample=SAMPLES), bed=expand("callable_strict_{sample}.bed", sample=SAMPLES)
     output: "merged.vcf"
+    params: nsamples=len(SAMPLES)
     shell:
         """
             bcftools merge --missing-to-ref -m none -i DP:avg,TLOD:min,P_CONTAM:max,P_GERMLINE:min -o {output}.vcf.tmp {input.vcf}
-            bedtools multiinter -i {input.bed} | bedtools merge -i - > {output}.bed.tmp
+            bedtools multiinter -i {input.bed} | bawk '$4=={params.nsamples}' | bedtools merge -i - > {output}.bed.tmp
             bedtools intersect -header -u -a {output}.vcf.tmp -b {output}.bed.tmp > {output}
             rm {output}.*.tmp
         """
