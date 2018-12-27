@@ -12,4 +12,5 @@ CNV_GENES=BASE+"/all_cnv.txt"
 PATHWAYS=BASE+"/signatures_irino_5FU_hl_calvet.txt"
 #(plot) [pre_irino]egrassi@hactarlogin$ cat DTB_WESdata_CompleteStudy_muts.txt | cut -f 4,5 | sed 1d | sort | uniq > gs_desc
 GS_DESC=BASE+"/../gs_desc"
-MSI=BASE+"/MSI"
+MSI=BASE+"/MSI_mock"
+MSI_TRUE=BASE+"/MSI"

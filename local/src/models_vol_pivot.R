@@ -39,9 +39,9 @@ msi <- read.table(msi, sep="\t", header=FALSE)
 averages[,"msi"] <- rep(0, nrow(averages))
 averages[rownames(averages) %in% msi[,1],"msi"] <- 1
 
-av <- averages[rownames(averages) %in% wanted,]
+av <- averages[rownames(averages) %in% feasible,]
 cat("MSI:\t")
-cat(length(av[av$msi==1,]))
+cat(nrow(av[av$msi==1,]))
 cat("\n")
 
 if (debug == "yes") {
