@@ -1,0 +1,253 @@
+include: "../conf.sk"
+
+# XXX better to have a variable with align dir?
+subworkflow aligncalibrateflow:
+    workdir: "../align_calibrate"
+    snakefile: "../align_calibrate/Snakefile"
+
+rule sufficient_coverage_outof:
+    input: aligncalibrateflow("../align_calibrate/depth/{sample}.outof.bed.gz")
+    output: "callable_outof_{sample}.bed"
+    params: callable=CALLABLE
+    shell: 
+        """
+         zcat {input} | filter_1col 4 <(echo {params.callable} | tr "," "\\n") > {output}
+        """
+
+# wtf tab?
+rule callable:
+    input: exons=SSEXONS, outof="callable_outof_{sample}.bed", fai=DATA_DIR+"/GRCh38.d1.vd1.fa.fai"
+    output: "callable_exons_{sample}.bed"
+    shell:
+        """ 
+            cat {input.exons} {input.outof} | bedtools sort -faidx {input.fai} -i - > {output}.tmp
+            bedtools merge -i {output}.tmp > {output}
+            rm {output}.tmp
+        """
+
+#gatk --java-options "-Xmx2g" Mutect2 \
+#-R hg38/Homo_sapiens_assembly38.fasta \
+#-I tumor.bam \
+#-I normal.bam \
+#-tumor HCC1143_tumor \
+#-normal HCC1143_normal \
+#-pon resources/chr17_pon.vcf.gz \
+#--germline-resource resources/chr17_af-only-gnomad_grch38.vcf.gz \
+#--af-of-alleles-not-in-resource 0.0000025 \
+#--disable-read-filter MateOnSameContigOrNoMappedMateReadFilter \
+#-L chr17plus.interval_list \
+#-O 1_somatic_m2.vcf.gz \
+#-bamout 2_tumor_normal_m2.bam
+#
+## For example, the gnomAD resource af-only-gnomad_grch38.vcf.gz represents ~200k exomes and ~16k genomes and the tutorial data is exome data, so we adjust --af-of-alleles-not-in-resource to 0.0000025 which corresponds to 1/(2*exome samples).
+#gnomad_af=GNOMAD+"/gnomad.forcontamination.exomes.vcf"
+##../align_calibrate/dbsnp.all.vcf.gz
+#gnomad=GNOMAD+"/chr_gnomad.exomes.vcf.bgz"
+## loweraf = 0 without normal to avoid too strict filters on germlinea
+#https://gatkforums.broadinstitute.org/gatk/discussion/10157/gatk4-beta-no-filter-passing-variants-in-mutect2-tumor-only-runs-using-default-parameters
+## TODO bed should be intersection of callable ref and delta
+rule mutect:
+    input: bamdelta=aligncalibrateflow("../align_calibrate/realigned_{sampledelta}.bam"), gnomad=GNOMAD+"/af-only-gnomad.hg38.vcf.gz", bed="callable_exons_{sampleref}.bed", reference=DATA_DIR+"/GRCh38.d1.vd1.fa", bamref=aligncalibrateflow("../align_calibrate/realigned_{sampleref}.bam")
+    output: vcf="{sampledelta}-{sampleref}.vcf.gz"
+    singularity: ROOT+"/gatk/gatk.img"
+    params: loweraf="0", padding=PADDING
+    shell: 
+        """
+            gatk Mutect2 -tumor {wildcards.sampledelta} -I {input.bamdelta} -normal {wildcards.sampleref} -I {input.bamref} -R {input.reference} -O {output.vcf} --interval-padding {params.padding} --germline-resource {input.gnomad} -L {input.bed}
+        """
+    
+#with snptba as germline:
+#Job ID: 31864
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 02:44:50
+#CPU Efficiency: 99.55% of 02:45:35 core-walltime
+#Job Wall-clock time: 02:45:35
+#Memory Utilized: 2.16 GB
+#Memory Efficiency: 13.82% of 15.62 GB
+#
+#with gnomad:
+#Job ID: 31893
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 01:24:15
+#CPU Efficiency: 99.90% of 01:24:20 core-walltime
+#Job Wall-clock time: 01:24:20
+#Memory Utilized: 2.16 GB
+#Memory Efficiency: 73.68% of 2.93 GB
+#
+
+rule getpileup:
+    input: bam=aligncalibrateflow("../align_calibrate/realigned_{sample}.bam"), gnomad=GNOMAD+"/gnomad.forcontamination.exomes.vcf", bed="callable_exons_{sample}.bed"
+    output: "{sample}.pileup.table"
+    singularity: ROOT+"/gatk/gatk.img"
+    params: padding=PADDING
+    shell: 
+        """
+            gatk GetPileupSummaries -I {input.bam} -V {input.gnomad} -L {input.bed} -O {output} --interval-padding {params.padding}
+        """
+
+#Job ID: 31901
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 00:13:30
+#CPU Efficiency: 99.75% of 00:13:32 core-walltime
+#Job Wall-clock time: 00:13:32
+#Memory Utilized: 1006.37 MB
+#Memory Efficiency: 33.55% of 2.93 GB
+
+rule calculatecontamination:
+    input: "{sample}.pileup.table"
+    output: "{sample}.contamination.table"
+    singularity: ROOT+"/gatk/gatk.img"
+    shell:
+        """
+            gatk CalculateContamination  -I {input} -O {output}
+        """
+
+#Job ID: 31904
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 00:00:08
+#CPU Efficiency: 80.00% of 00:00:10 core-walltime
+#Job Wall-clock time: 00:00:10
+#Memory Utilized: 0.00 MB (estimated maximum)
+#Memory Efficiency: 0.00% of 2.93 GB (2.93 GB/node)
+
+rule filtercalls:
+    input: vcf="{sampledelta}-{sampleref}.vcf.gz", contamination="{sampledelta}.contamination.table"
+    output: vcf="{sampledelta}-{sampleref}.filtered.vcf.gz", stats="{sampledelta}-{sampleref}_filtering_stats.tsv"
+    singularity: ROOT+"/gatk/gatk.img"
+    shell:
+        """
+            gatk FilterMutectCalls -V {input.vcf} --contamination-table {input.contamination} -O {output.vcf} --stats {output.stats}
+        """
+
+
+# XXX better to adopt a not conflicting naming convention or use patterns in wildcards (negation did not work in 2017)?
+#ruleorder:  filtercalls > mutect
+# 
+#Job ID: 31909
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 00:00:16
+#CPU Efficiency: 88.89% of 00:00:18 core-walltime
+#Job Wall-clock time: 00:00:18
+#Memory Utilized: 0.00 MB (estimated maximum)
+#Memory Efficiency: 0.00% of 2.93 GB (2.93 GB/node)
+#
+#
+
+
+#- artifacts: removed bed interval due to format requirements and who cares and dbsnp due to a nullpointerexception (...)
+#rule artifacts:
+#    input: bam=aligncalibrateflow("../align_calibrate/realigned_{sample}.bam"), reference=DATA_DIR+"/GRCh38.d1.vd1.fa"
+#    output: "{sample}.artifacts.pre_adapter_summary_metrics"
+#    singularity: ROOT+"/gatk/gatk.img"
+#    shell:
+#        """
+#            gatk CollectSequencingArtifactMetrics -R {input.reference} -I {input.bam} -O {wildcards.sample}.artifacts
+#        """
+
+
+#Job ID: 33044
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 00:16:39
+#CPU Efficiency: 99.50% of 00:16:44 core-walltime
+#Job Wall-clock time: 00:16:44
+#Memory Utilized: 2.10 GB
+#Memory Efficiency: 53.70% of 3.91 GB
+#
+rule filterOrientation:
+    input: vcf="{sample}.filtered.vcf.gz", artifact="{sample}.artifacts.pre_adapter_detail_metrics"
+    output: vcf="{sample}.bifiltered.vcf.gz"
+    singularity: ROOT+"/gatk/gatk.img"
+    shell:
+        """
+            gatk FilterByOrientationBias --artifact-modes G/T -P {input.artifact} -V {input.vcf} -O {output}
+        """
+
+
+#Job ID: 33065
+#Cluster: hactar
+#User/Group: egrassi/egrassi
+#State: COMPLETED (exit code 0)
+#Cores: 1
+#CPU Utilized: 00:00:19
+#CPU Efficiency: 82.61% of 00:00:23 core-walltime
+#Job Wall-clock time: 00:00:23
+#Memory Utilized: 0.00 MB (estimated maximum)
+#Memory Efficiency: 0.00% of 3.91 GB (3.91 GB/node)
+
+# We remove the POP_AF=1, they are SNP where the reference is mutated, all gnomad has alternate allele, not a somatic mutation
+# I think.
+rule passFilter:
+    input: "{sample}.filtered.vcf.gz"
+    output: "{sample}.pass.vcf.gz"
+    shell:
+        """
+        zcat {input} |  awk '/^#/ || $7=="PASS"' | grep -v 'POP_AF=1.00;' | bgzip > {output}
+        tabix {output}
+        """ 
+
+################ we have to filter more
+rule sufficient_coverage_outof_strict:
+    input: aligncalibrateflow("../align_calibrate/depth/{sample}.outof.bed.gz"), aligncalibrateflow("../align_calibrate/depth/{sample}.exons.bed.gz")
+    output: "callable_strict_{sample}.bed"
+    params: callable=CALLABLE_STRICT
+    shell: 
+        """
+         zcat {input} | filter_1col 4 <(echo {params.callable} | tr "," "\\n") |  sort -k1,1 -k2,2n | bedtools merge -i - > {output}
+        """
+
+# Skip sites where FILTER column does not contain any of the strings listed in LIST. For example, to include only sites which have no filters set, use -f .,PASS. 
+rule merge:
+    input: vcf=expand("{sample}.pass.vcf.gz", sample=SAMPLES), bed=expand("callable_strict_{sample}.bed", sample=SAMPLES)
+    output: "merged.vcf"
+    params: nsamples=len(SAMPLES)
+    shell:
+        """
+            bcftools merge --missing-to-ref -m none -i DP:avg,TLOD:min,P_CONTAM:max,P_GERMLINE:min -o {output}.vcf.tmp {input.vcf}
+            bedtools multiinter -i {input.bed} | bawk '$4=={params.nsamples}' | bedtools merge -i - > {output}.bed.tmp
+            bedtools intersect -header -u -a {output}.vcf.tmp -b {output}.bed.tmp > {output}
+            rm {output}.*.tmp
+        """
+
+
+rule VEP:
+    input: "merged.vcf"
+    output: txt="merged.vep.txt", html="merged.vep.stats.html", vcf=temp("merged.vcf.id")
+    params: cd=VEP_CACHE_DIR
+    shell:
+        """
+             bcftools annotate -I +'%CHROM:%POS:%REF:%ALT' {input} > {output.vcf}
+             vep -i {output.vcf} --cache --dir_cache {params.cd} --output_file {output.txt} --stats_file {output.html} --pick
+        """
+
+rule vcf_to_aftable:
+    input: "merged.vcf.id"
+    output: table="merged.table_nomultiallele"
+    params: nsamples=len(SAMPLES)
+    shell:
+        """
+             cat {input} | grep -v "^##" |  perl -ane '@gt=splice(@F,9,{params.nsamples}); $gt=""; foreach $g (@gt) {{ if ($.==1) {{$gt.=$g."\\t";}} else {{ @afs = split(":",$g); if ($afs[2] eq ".") {{$afs[2]=0;}} $gt.=$afs[2]."\\t";}} }} chop($gt) ; print $F[2]."\\t".$gt."\\n";' | grep -v "," > {output.table}
+        """
+
+
+#(base) [mutect2]egrassi@hactarlogin$ snakemake -j 6 all_samples_pass.vcf.gz --use-singularity --singularity-args "-B /home/egrassi/:/home/egrassi/ -B /work/egrassi:/work/egrassi"  --cluster-config ../../../local/share/hactar.json --cluster-sync "sbatch --wait --parsable --mail-user={cluster.mail-user} --mail-type={cluster.mail-type} --partition={cluster.partition} --nodes={cluster.nodes} --job-name={cluster.job-name} --output={cluster.output} --error={cluster.error} --time={cluster.time} --mem={cluster.mem} --ntasks={cluster.ntasks}"
+
+
+
