@@ -72,32 +72,56 @@ rule translate_gene_sign:
 #[exomes_other_dec18]egrassi@hactarlogin$ head -n 2 ../../local/share/data/pre_irino/dec2018/../DTB_WESdata_CompleteStudy_muts.txt | cut -f 7,27,28,29
 # -1 to fall to 0 based
 
+rule detailed_muts_sanger:
+    input: "../../local/share/data/pre_irino/DTB_TargetedNGS_SangerInstitute_DriverMutations.txt"
+    output: "sanger_gene.annovar.bed"
+    shell:
+        """
+          grep LMX {input} | perl -wane '$ch="chr".$F[3]; $b=$F[4]-1; $e=$b+1;
+          $f = $F[5]; $s = $F[6];
+          @ff = split("",$f); @ss = split("",$s);
+          if ($ff[0] eq $ss[0]) {{
+            $f = substr($f, 1);
+            $s = substr($s, 1);
+            $b +=1;
+            $e +=1;
+          }}
+          $n=$f."-".$s."-".substr($F[0],0,7)."_".$F[7]."_".$F[16]."_".$F[17];
+          print "$ch\\t$b\\t$e\\t$n\\n"' > {output}
+        """
 
-#TODO SANGER
-rule detailed_muts:
+rule detailed_muts_wes:
     input: "../../local/share/data/pre_irino/DTB_WESdata_CompleteStudy_muts_manualfixes.txt"
-    output: "muts_gene.annovar.bed"
+    output: "wes_gene.annovar.bed"
     shell:
         """
             sed 1d {input} | perl -F"\\t" -ane 'my $g = $F[3]; $g =~ tr/\-_:/;;;;/; printf("CRC%04d\\t%s\\t%s\\t%s\\t%s\\t%s\\n",$F[0],$g,$F[6],$F[26],$F[27],$F[28])' \\
             | tr ":" "_" | tr "_" "\\t" | tr "-" "\\t" | bawk '{{print $3,$4-1,$5,$6"-"$7"-"$1"_"$2"_"$8"_"$9"_"$10}}' > {output}
         """
 
-rule liftover:
-    input: "muts_gene.annovar.bed", "../../local/share//data/pre_irino/hg18ToHg38.over.chain.gz"
-    output: "muts_gene.annovar.hg38.bed", "muts_gene.annovar.hg38.bed.miss"
+rule liftover_sanger:
+    input: "sanger_gene.annovar.bed", "../../local/share/data/pre_irino/hg19ToHg38.over.chain.gz"
+    output: "sanger_gene.annovar.hg38.bed", "sanger_gene.annovar.hg38.bed.miss"
+    shell:
+        """
+            liftOver {input[0]} {input[1]} {output[0]} {output[1]}
+        """
+rule liftover_wes:
+    input: "wes_gene.annovar.bed", "../../local/share/data/pre_irino/hg18ToHg38.over.chain.gz"
+    output: "wes_gene.annovar.hg38.bed", "wes_gene.annovar.hg38.bed.miss"
     shell:
         """
             liftOver {input[0]} {input[1]} {output[0]} {output[1]}
         """
 
 rule annovar:
-    input: "muts_gene.annovar.hg38.bed", "/home/egrassi/common/task/annotations/dataset/annovar/hg38/humandb/"
-    output: "wes.hg38_multianno.txt"
+    input: "{kind}_gene.annovar.hg38.bed", "/home/egrassi/common/task/annotations/dataset/annovar/hg38/humandb/"
+    output: "{kind}.hg38_multianno.txt"
+    log: "{kind}.hg38_multianno.log"
     params: ver="hg38"
     shell: 
         """
         sed 's/chr//1;' < {input[0]} | tr "-" "\\t" | bawk '{{b=$2+1; e=b+length($4)-1; print $1,b,e,$4,$5,$6}}' > {output}.tmp
-        table_annovar.pl {output}.tmp {input[1]} --otherinfo -buildver {params.ver} -out wes -remove -protocol refGene,avsnp150,cosmic87_coding,nci60 -operation g,f,f,f -nastring . -polish 
+        table_annovar.pl {output}.tmp {input[1]} --otherinfo -buildver {params.ver} -out {wildcards.kind} -remove -protocol refGene,avsnp150,cosmic87_coding,nci60,dbnsfp35c,clinvar_20180603 -operation g,f,f,f,f,f -nastring . -polish &> {log}
         rm {output}.tmp
         """
