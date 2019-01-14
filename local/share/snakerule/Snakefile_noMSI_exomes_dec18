@@ -1,11 +1,11 @@
 include: "conf.sk"
-#3 for other muts file
+#1 for other muts file
 rule reduce_mut_gene:
     input: MUTS
     output: "muts_gene.txt"
     shell:
         """
-            sed 1d {input} | perl -F"\\t" -ane 'printf("CRC%04d\\t%s\\n",$F[0],$F[1])' > {output}
+            sed 1d {input} | perl -F"\\t" -ane 'printf("CRC%04d\\t%s\\n",$F[0],$F[3])' > {output}
         """
 
 rule reduce_cnv_gene:
@@ -68,3 +68,36 @@ rule translate_gene_sign:
             translate -n -a -d -j -k <(bawk '{{print $1"_"$2,$3}}' < {input.path} | sort | uniq) 2 < {input.muts} | cut -f 1,3 | sort | uniq > {output}
         """
 
+#### Annotation
+#[exomes_other_dec18]egrassi@hactarlogin$ head -n 2 ../../local/share/data/pre_irino/dec2018/../DTB_WESdata_CompleteStudy_muts.txt | cut -f 7,27,28,29
+# -1 to fall to 0 based
+
+
+#TODO SANGER
+rule detailed_muts:
+    input: "../../local/share/data/pre_irino/DTB_WESdata_CompleteStudy_muts_manualfixes.txt"
+    output: "muts_gene.annovar.bed"
+    shell:
+        """
+            sed 1d {input} | perl -F"\\t" -ane 'my $g = $F[3]; $g =~ tr/\-_:/;;;;/; printf("CRC%04d\\t%s\\t%s\\t%s\\t%s\\t%s\\n",$F[0],$g,$F[6],$F[26],$F[27],$F[28])' \\
+            | tr ":" "_" | tr "_" "\\t" | tr "-" "\\t" | bawk '{{print $3,$4-1,$5,$6"-"$7"-"$1"_"$2"_"$8"_"$9"_"$10}}' > {output}
+        """
+
+rule liftover:
+    input: "muts_gene.annovar.bed", "../../local/share//data/pre_irino/hg18ToHg38.over.chain.gz"
+    output: "muts_gene.annovar.hg38.bed", "muts_gene.annovar.hg38.bed.miss"
+    shell:
+        """
+            liftOver {input[0]} {input[1]} {output[0]} {output[1]}
+        """
+
+rule annovar:
+    input: "muts_gene.annovar.hg38.bed", "/home/egrassi/common/task/annotations/dataset/annovar/hg38/humandb/"
+    output: "wes.hg38_multianno.txt"
+    params: ver="hg38"
+    shell: 
+        """
+        sed 's/chr//1;' < {input[0]} | tr "-" "\\t" | bawk '{{b=$2+1; e=b+length($4)-1; print $1,b,e,$4,$5,$6}}' > {output}.tmp
+        table_annovar.pl {output}.tmp {input[1]} --otherinfo -buildver {params.ver} -out wes -remove -protocol refGene,avsnp150,cosmic87_coding,nci60 -operation g,f,f,f -nastring . -polish 
+        rm {output}.tmp
+        """
