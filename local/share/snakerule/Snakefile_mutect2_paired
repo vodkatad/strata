@@ -195,8 +195,8 @@ rule filterOrientation:
 # We remove the POP_AF=1, they are SNP where the reference is mutated, all gnomad has alternate allele, not a somatic mutation
 # I think.
 rule passFilter:
-    input: "{sample}.filtered.vcf.gz"
-    output: "{sample}.pass.vcf.gz"
+    input: "{sampledelta}-{sampleref}.filtered.vcf.gz"
+    output: "{sampledelta}-{sampleref}.pass.vcf.gz"
     shell:
         """
         zcat {input} |  awk '/^#/ || $7=="PASS"' | grep -v 'POP_AF=1.00;' | bgzip > {output}
