@@ -25,6 +25,22 @@ rule muts_gene_table:
          pt = pandas.pivot_table(data, index=['pdx'], columns='mut', aggfunc=lambda x: 1, fill_value=0)
          pt.to_csv(output[0], sep='\t', index=True)
 
+rule sanger_filter:
+    input: "cnv.txt"
+    output: "sanitized_cnv.txt"
+    run:
+        import pandas
+        import math
+        data = pandas.read_csv(input[0], sep="\t", header=None, names=['pdx','gene','cnv'])
+        def min_or_na(x):
+            #manually checked that we do not have nan with numbers
+            if all([math.isnan(y) for y in x]):
+                return -42 # such a pain https://stackoverflow.com/questions/18429491/groupby-columns-with-nan-missing-vaues
+            else:
+                return min(x)
+        res = data.groupby(['pdx', 'gene'])['cnv'].apply(min_or_na).fillna(-42)
+        res.to_csv(output[0], sep='\t', index=True)
+
 rule sanger_all:
     input: mut=SANGER, msi=MSI_TRUE
     output: "muts_sanger.txt"
@@ -36,12 +52,14 @@ rule sanger_all:
 wildcard_constraints:
     thr="[0-9]"
 
+# XXX provare a tenere valore del CNV? gain e loss insieme invece che separati
+# repeat_group_pipe
 rule cnv:
-    input: mut="cnv.txt", msi=MSI_TRUE
+    input: mut="sanitized_cnv.txt", msi=MSI_TRUE
     output: "muts_cnv{thr}.txt"
     shell:
         """
-        sed 1d {input.mut} | bawk '$3 != "NA" && $3 >= {wildcards.thr} {{print $1,$2"_gain"}} $3 == "NA" {{print $1,$2"_loss"}}' | filter_1col -v 1 {input.msi} > {output}
+        cat {input.mut} | bawk '$3 != "NA" && $3 >= {wildcards.thr} {{print $1,$2"_gain"}} $3 == "NA" {{print $1,$2"_loss"}}' | filter_1col -v 1 {input.msi} > {output}
         """
 
 rule avg_week:
@@ -56,7 +74,6 @@ rule models:
     params: debug=DEBUG, pdx="pdx", cutoff=3, plotdir="{type}_plots"
     script: SRC_DIR+"models_vol_pivot.R"
 
-# TODO R that add gene names to linear models, sorts on pvalue and add extended gene name - plots of volumes 0 vs 1
 
 #### Pathways
 # do not work with CNV right now, _gain _loss is there.
