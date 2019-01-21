@@ -18,10 +18,10 @@ invf <- 1/exsubcl
 
 pdf(fit)
 plot(invf, excum)
-dev.off()
+graphics.off()
 pdf(histo)
 hist(exsubcl, breaks=50)
-dev.off()
+graphics.off()
 
 if (debug == "yes") {
   save.image(file=paste0(fit,'.debug','.RData'))
