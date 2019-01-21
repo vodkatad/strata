@@ -1,0 +1,73 @@
+include: "conf.sk"
+
+rule cnv_value:
+    input: "cnv.txt"
+    output: "cnv_value.txt"
+    run:
+         import pandas
+         data = pandas.read_csv(input[0], sep="\t", header=None, names=['pdx','gene','logCN'])
+         pt = pandas.pivot_table(data, values='logCN', index=['pdx'], columns='gene', aggfunc=lambda x: x, fill_value=0)
+         pt.to_csv(output[0], sep='\t', index=True)
+
+rule muts_gene_table:
+    input: "muts_{kind}.txt"
+    output: "muts_{kind}_pivot.txt"
+    run:
+         import pandas
+         data = pandas.read_csv(input[0], sep="\t", header=None, names=['pdx','mut'])
+         pt = pandas.pivot_table(data, index=['pdx'], columns='mut', aggfunc=lambda x: x, fill_value=0)
+         pt.to_csv(output[0], sep='\t', index=True)
+
+rule sanger_all:
+    input: mut=CNV, msi=MSI_TRUE
+    output: "cnv.txt"
+    shell:
+        """
+            grep LMX {input.mut} |  perl -ane 'my $c=substr($F[1],0,7); print "$c\\t$F[2]\\t$F[3]\\n"' | filter_1col -v 1 {input.msi} > {output}
+        """
+
+wildcard_constraints:
+    thr1="-?[0-9]"
+
+wildcard_constraints:
+    thr2="-?[0-9]"
+
+# XXX provare a tenere valore del CNV? gain e loss insieme invece che separati
+rule cnv:
+    input: mut="cnv.txt"
+    output: "muts_cnv{thr1}@{thr2}.txt"
+    shell:
+        """
+        cat {input.mut} | bawk '$3 > {wildcards.thr1} {{print $1,$2"_gain"}} $3 < {wildcards.thr2} {{print $1,$2"_loss"}}' > {output}
+        """
+
+rule avg_week:
+    input: volumes=VOLUMES
+    output: waterfall="{wr}-{wt}_waterfall.png", means="{wr}-{wt}_avg.tsv"
+    params: debug=DEBUG, pdx="pdx", ref="{wr}", target="{wt}"  
+    script: SRC_DIR+"average_volumes_pdx.R"
+
+rule models:
+    input: volumes=W3, pivot="muts_{type}_pivot.txt", msi=MSI
+    output: linear="{type}_linear_models.tsv", logistic="{type}_logistic_models.tsv", linearxls="{type}_linear_models.xls"
+    params: debug=DEBUG, pdx="pdx", cutoff=3, plotdir="{type}_plots"
+    script: SRC_DIR+"models_vol_pivot.R"
+
+rule models_value:
+    input: volumes=W3, pivot="cnv_value.txt", msi=MSI
+    output: linear="cnvvalue_linear_models.tsv", logistic="cnvvalue_logistic_models.tsv", linearxls="cnvvalue_linear_models.xls"
+    params: debug=DEBUG, pdx="pdx", cutoff=3, plotdir="cnvvalue_plots"
+    script: SRC_DIR+"models_vol_value.R"
+
+
+
+#### Pathways
+# do not work with CNV right now, _gain _loss is there.
+rule translate_gene_sign:
+    input: muts="muts_{kind}.txt", path=PATHWAYS
+    output: "muts_{kind}pathways.txt"
+    shell:  
+        """
+            translate -n -a -d -j -k <(bawk '{{print $1"_"$2,$3}}' < {input.path} | sort | uniq) 2 < {input.muts} | cut -f 1,3 | sort | uniq > {output}
+        """
+

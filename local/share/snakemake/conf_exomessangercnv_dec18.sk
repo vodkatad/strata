@@ -1,0 +1,12 @@
+DEBUG="yes"
+PRJ_ROOT="../.."
+SRC_DIR=PRJ_ROOT+"/local/src/"
+
+BASE=PRJ_ROOT+"/local/share/data/pre_irino"
+CNV=BASE+"/../sanger_cnv/PDX_cn_summary_allgenes_genealogy3.tsv"
+VOLUMES=BASE+"/chemio_dec_2019.txt"
+W3=BASE+"/dec2018/w3.txt"
+PATHWAYS=BASE+"/signatures_irino_5FU_hl_calvet.txt"
+GS_DESC=BASE+"/../gs_desc"
+MSI=BASE+"/dec2018/MSI_mock"
+MSI_TRUE=BASE+"/dec2018/MSI"
