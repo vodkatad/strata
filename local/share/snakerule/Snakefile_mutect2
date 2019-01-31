@@ -224,8 +224,8 @@ rule single_table:
 
 rule neutral_sottoriva:
     input: afmatrix="{sample}.pass.table.gz"
-    params: debug=DEBUG, loweraf=0.25, afcolumn="{sample}"
-    output: hist="{sample}.hist.pdf", fit="{sample}.fit.pdf"
+    params: debug=DEBUG, afcolumn="{sample}"
+    output: hist="{sample}.hist.{loweraf}_{higheraf}.pdf", fit="{sample}.fit.{loweraf}_{higheraf}.pdf", r2="{sample}.fit.{loweraf}_{higheraf}.r2"
     script: SRC_DIR+"/neutral_sottoriva.R"
 
 # Skip sites where FILTER column does not contain any of the strings listed in LIST. For example, to include only sites which have no filters set, use -f .,PASS. 
@@ -250,6 +250,18 @@ rule VEP:
         """
              bcftools annotate -I +'%CHROM:%POS:%REF:%ALT' {input} > {output.vcf}
              vep -i {output.vcf} --cache --dir_cache {params.cd} --output_file {output.txt} --stats_file {output.html} --pick
+        """
+
+#~/utilities/annovar/table_annovar.pl CRC0371LMX0B01201TUMD07000.pass.vcf.gz /home/egrassi/common/task/annotations/dataset/annovar/hg38/humandb/ --otherinfo -buildver hg38 -out prova.vcf  -remove -vcfinput -protocol refGene,avsnp150,cosmic87_coding,nci60 -operation g,f,f,f -nastring . -polish &> prova.log
+rule annovar:
+    input: vcf="merged.vcf.id", annovdir=ANNOVDIR
+    output: "merged_annovar."+VERSION+"_multianno.vcf", "merged_annovar."+VERSION+"_multianno.txt"
+    params: ver=VERSION
+    log: "merged_annovar.log"
+    shell:
+        """
+            table_annovar.pl {input.vcf} {input.annovdir} -buildver {params.ver} -out merged_annovar -remove -vcfinput -protocol refGene,cosmic87_coding,cosmic87_noncoding -operation g,f,f -nastring . -polish --otherinfo &> {log}
+            rm merged_annovar.avinput
         """
 
 rule vcf_to_aftable:
