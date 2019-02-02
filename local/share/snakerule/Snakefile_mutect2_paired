@@ -213,19 +213,20 @@ rule sufficient_coverage_outof_strict:
          zcat {input} | filter_1col 4 <(echo {params.callable} | tr "," "\\n") |  sort -k1,1 -k2,2n | bedtools merge -i - > {output}
         """
 
+REF="CRC0542LMX0B01001TUMD11000"
+SAMPLESD=["CRC0542LMX0B02001TUMD02000","CRC0542LMX0B02003TUMD02000","CRC0542LMX0B03020TUMD05000","CRC0542LMX0B04006TUMD02000"]
 # Skip sites where FILTER column does not contain any of the strings listed in LIST. For example, to include only sites which have no filters set, use -f .,PASS. 
 rule merge:
-    input: vcf=expand("{sample}.pass.vcf.gz", sample=SAMPLES), bed=expand("callable_strict_{sample}.bed", sample=SAMPLES)
+    input: vcf=expand("{sampledelta}-"+REF+".pass.vcf.gz", sampledelta=SAMPLESD), bed=expand("callable_strict_{sample}.bed", sample=SAMPLES)
     output: "merged.vcf"
-    params: nsamples=len(SAMPLES)
+    params: nsamples=len(SAMPLES), samps="CRC0542LMX0B02001TUMD02000,CRC0542LMX0B02003TUMD02000,CRC0542LMX0B03020TUMD05000,CRC0542LMX0B04006TUMD02000"
     shell:
         """
-            bcftools merge --missing-to-ref -m none -i DP:avg,TLOD:min,P_CONTAM:max,P_GERMLINE:min -o {output}.vcf.tmp {input.vcf}
-            bedtools multiinter -i {input.bed} | bawk '$4=={params.nsamples}' | bedtools merge -i - > {output}.bed.tmp
-            bedtools intersect -header -u -a {output}.vcf.tmp -b {output}.bed.tmp > {output}
-            rm {output}.*.tmp
+            bedtools multiinter -i {input.bed} | bawk '$4=={params.nsamples}' | bedtools merge -i - > {output}.tmp.bed
+            bcftools merge --force-samples -R {output}.tmp.bed --missing-to-ref -m none -i DP:avg,TLOD:min,P_CONTAM:max,P_GERMLINE:min -o {output}.tmp.vcf {input.vcf}
+            bcftools view -s {params.samps} {output}.tmp.vcf > {output}
+            rm {output}.tmp.bed {output}.tmp.vcf
         """
-
 
 rule VEP:
     input: "merged.vcf"
@@ -240,7 +241,7 @@ rule VEP:
 rule vcf_to_aftable:
     input: "merged.vcf.id"
     output: table="merged.table_nomultiallele"
-    params: nsamples=len(SAMPLES)
+    params: nsamples=len(SAMPLESD)
     shell:
         """
              cat {input} | grep -v "^##" |  perl -ane '@gt=splice(@F,9,{params.nsamples}); $gt=""; foreach $g (@gt) {{ if ($.==1) {{$gt.=$g."\\t";}} else {{ @afs = split(":",$g); if ($afs[2] eq ".") {{$afs[2]=0;}} $gt.=$afs[2]."\\t";}} }} chop($gt) ; print $F[2]."\\t".$gt."\\n";' | grep -v "," > {output.table}

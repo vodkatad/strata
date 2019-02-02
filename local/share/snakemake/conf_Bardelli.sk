@@ -4,6 +4,8 @@ SRC_DIR=PRJ_ROOT+'/local/src'
 DATA_DIR=PRJ_ROOT+'/local/share/data'
 DEBUG="yes"
 
+VERSION='hg38'
+ANNOVDIR=ROOT+'/common/task/variant_annotations/dataset/annovar/'+VERSION+'/humandb/'
 ## This dataset:
 DATA=DATA_DIR+'/bardelli_wes'
 EXONS=DATA+'/PJ1807203_covered.bed'
@@ -40,4 +42,4 @@ PADDING=100
 
 GNOMAD=ROOT+"/common/task/annotations/dataset/gnomad"
 
-VEP_CACHE_DIR=ROOT+"/common/task/annotations/dataset/VEP"
+VEP_CACHE_DIR=ROOT+'/common/task/variant_annotations/dataset/VEP'
