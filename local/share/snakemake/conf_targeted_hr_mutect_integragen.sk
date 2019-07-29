@@ -1,0 +1,43 @@
+DEBUG="yes"
+PRJ_ROOT="../.."
+SRC_DIR=PRJ_ROOT+"/local/src"
+
+BASE=PRJ_ROOT+"/local/share/data/pre_irino/dec2018"
+MUTS="muts_gene_crc.tsv"
+DICTIO_CRC=PRJ_ROOT+"/local/share/data/targeted_hr/PJ1903090-SF-Integragen-Targeted-Seq.tsv"
+SANGER=BASE+"/../DTB_TargetedNGS_SangerInstitute_DriverMutations.txt"
+CNV=BASE+"/all_cnv.txt"
+VOLUMES=BASE+"/chemio_dec_2019.txt"
+W3=BASE+"/w3.txt"
+CNV_GENES=BASE+"/all_cnv.txt"
+PATHWAYS=PRJ_ROOT+"/local/share/data/targeted_hr/hr_all.txt"
+#aplot) [pre_irino]egrassi@hactarlogin$ cat DTB_WESdata_CompleteStudy_muts.txt | cut -f 4,5 | sed 1d | sort | uniq > gs_desc
+GS_DESC=BASE+"/../gs_desc"
+MSI=BASE+"/MSI"
+
+rule mut_gene:
+    output: "muts_gene_nocrc.tsv"
+    input: PRJ_ROOT+"/local/share/data/targeted_hr/Results/Results_DNA/02_Variants/Oncology/"
+    shell: 
+        """
+            for f in  {input}/*.vcf.gz; do \
+                (zcat $f  | grep -v "^#" | grep -w PASS | cut -f 8 | tr '|' "\\t" | cut -f 4 | bawk  -v f=$f '{{print $1,f}}' | tr "_" "\\t" | cut -f 1,6) || true ; \
+            done > {output}
+        """
+
+rule translate:
+    input: muts="muts_gene_nocrc.tsv", dictio=DICTIO_CRC
+    output: "muts_gene_crc.tsv"
+    shell:
+        """
+            echo -e "crc\\tgene" > {output}
+            sed 1d {input.muts} | translate <(sed 1d {input.dictio} | cut -f 1 | tr "_" "\\t") 2  | bawk '{{print $2,$1}}' >> {output}
+        """
+
+rule cases:
+    input: DICTIO_CRC
+    output: "all_cases.tsv"
+    shell: 
+        """
+           cut -f 1 {input} | sed 1d | tr "_" "\t" | cut -f 2 | bawk '{{print substr($1,0,7)}}' > {output}
+        """
