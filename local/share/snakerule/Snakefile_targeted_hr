@@ -18,10 +18,10 @@ rule muts_gene_table:
          pt.to_csv(output[0], sep='\t', index=True)
 
 rule models:
-    input: volumes=W3, pivot="muts_{type}_pivot.txt", msi=MSI, gsannot=GS_DESC
+    input: volumes=W3, pivot="muts_{type}_pivot.txt", msi=MSI, all_samples="all_cases.tsv"
     output: linear="{type}_linear_models.tsv", logistic="{type}_logistic_models.tsv", linearxls="{type}_linear_models.xls"
     params: debug=DEBUG, pdx="pdx", cutoff=3, plotdir="{type}_plots"
-    script: SRC_DIR+"/models_vol_pivot.R"
+    script: SRC_DIR+"/models_vol_pivot_listsamples.R"
 
 #### Pathways
 # do not work with CNV right now, _gain _loss is there.

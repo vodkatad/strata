@@ -1,6 +1,7 @@
 DEBUG="yes"
 PRJ_ROOT="../.."
 SRC_DIR=PRJ_ROOT+"/local/src"
+BIN_DIR=PRJ_ROOT+"/local/bin"
 
 BASE=PRJ_ROOT+"/local/share/data/pre_irino/dec2018"
 MUTS="muts_gene_crc.tsv"
@@ -21,7 +22,7 @@ rule mut_gene:
     shell: 
         """
             for f in  {input}/*.vcf.gz; do \
-                (zcat $f  | grep -v "^#" | grep -w PASS | cut -f 8 | tr '|' "\\t" | cut -f 4 | bawk  -v f=$f '{{print $1,f}}' | tr "_" "\\t" | cut -f 1,6) || true ; \
+                (zcat $f  | grep -v "^#" | grep -w PASS | cut -f 8 | tr '|' "\\t" | bawk '$3=="HIGH" || $3=="MODERATE"'| cut -f 4 | bawk  -v f=$f '{{print $1,f}}' | tr "_" "\\t" | cut -f 1,6) || true ; \
             done > {output}
         """
 
