@@ -22,7 +22,7 @@ rule mut_gene:
     shell: 
         """
             for f in  {input}/*.vcf.gz; do \
-                (zcat $f  | grep -v "^#" | grep -w PASS | cut -f 8 | tr '|' "\\t" | bawk '$3=="HIGH" || $3=="MODERATE"'| cut -f 4 | bawk  -v f=$f '{{print $1,f}}' | tr "_" "\\t" | cut -f 1,6) || true ; \
+                (zcat $f  | grep -v "^#" | grep -w PASS | cut -f 8 | tr '|' "\\t" | bawk '$3=="HIGH"'| cut -f 4 | bawk  -v f=$f '{{print $1,f}}' | tr "_" "\\t" | cut -f 1,6) || true ; \
             done > {output}
         """
 

@@ -1,0 +1,120 @@
+DEBUG="yes"
+PRJ_ROOT="../.."
+SRC_DIR=PRJ_ROOT+"/local/src"
+BIN_DIR=PRJ_ROOT+"/local/bin"
+
+BASE=PRJ_ROOT+"/local/share/data"
+MUTS="muts_gene_crc.tsv"
+DICTIO_CRC=PRJ_ROOT+"/local/share/data/targeted_hr/PJ1903090-SF-Integragen-Targeted-Seq.tsv"
+TARGETED_GENES=BASE+"/targeted_hr/targeted_homologous.tsv"
+SEQ_WES=BASE+"/pre_irino/DTB_WESdata_sequencend_genealogy"
+SEQ_SANGER=BASE+"/pre_irino/DTB_TargetedNGS_sequenced_genealogy"
+WES_MUT_GENES=BASE+"/pre_irino/DTB_WESdata_CompleteStudy_muts_genes.txt"
+SANGER_MUT_GENES=BASE+"/pre_irino/DTB_TargetedNGS_SangerInstitute_DriverMutations.txt"
+
+rule all_consequences_variants:
+    input: PRJ_ROOT+"/local/share/data/targeted_hr/Results/Results_DNA/02_Variants/Oncology/"
+    output: "all_consequences"
+    shell:
+        """
+            zcat {input}/PON_*.vcf.gz | grep -v "^#" | grep -w PASS | cut -f 8 | tr "|" "\\t" | cut -f 2| sort | uniq > {output}
+        """
+
+WANTED=BASE+"/targeted_hr/wanted_conseq"
+
+rule mut_gene:
+    output: "muts_gene_nocrc.tsv"
+    input: dir=PRJ_ROOT+"/local/share/data/targeted_hr/Results/Results_DNA/02_Variants/Oncology/", wanted=WANTED
+    shell: 
+        """
+            for f in  {input.dir}/*.vcf.gz; do \
+                (zcat $f  | grep -v "^#" | grep -w PASS | cut -f 8 | tr '|' "\\t" | filter_1col 2 {input.wanted} | cut -f 4 | bawk  -v f=$f '{{print $1,f}}' | tr "_" "\\t" | cut -f 1,6) || true ; \
+            done > {output}
+        """
+
+rule translate:
+    input: muts="muts_gene_nocrc.tsv", dictio=DICTIO_CRC
+    output: "muts_gene_crc.tsv"
+    shell:
+        """
+            echo -e "crc\\tgene" > {output}
+            sed 1d {input.muts} | translate <(sed 1d {input.dictio} | cut -f 1 | tr "_" "\\t") 2  | bawk '{{print $2,$1}}' >> {output}
+        """
+
+rule cases:
+    input: DICTIO_CRC
+    output: "all_cases.tsv"
+    shell: 
+        """
+           cut -f 1 {input} | sed 1d | tr "_" "\t" | cut -f 2 | bawk '{{print substr($1,0,7)}}' > {output}
+        """
+
+#### WES
+
+rule common:
+    input: t="all_cases.tsv", w=SEQ_WES
+    output: "common_cases.tsv"
+    shell:
+        """
+            filter_1col 1 {input.w} < {input.t} > {output}
+        """
+
+rule wes:
+    input: c="common_cases.tsv", m=WES_MUT_GENES, targeted=TARGETED_GENES
+    output: "wes_muts_hrgenes.tsv"
+    shell:
+        """
+            filter_1col 1 {input.c} < {input.m} | filter_1col 2 <(cut -f 2 {input.targeted} | sed 1d) > {output}
+        """
+
+rule targeted:
+    input: m="muts_gene_crc.tsv", c="common_cases.tsv"
+    output: "targeted_muts_commonwes.tsv"
+    shell:
+        """
+            sed 1d {input.m} | bawk '{{print substr($1,0,7),$2}}'| filter_1col 1 {input.c} > {output}
+        """
+
+#### SANGER
+
+rule common_genes_sanger:
+    input: tar=TARGETED_GENES, sanger=BASE+"/pre_irino/sanger_targeted_genes"
+    output: "common_genes_sanger"
+    shell:
+        """
+         sed 1d {input.tar} | filter_1col 2 {input.sanger} > {output}
+        """
+
+
+rule cases_long:
+    input: DICTIO_CRC
+    output: "all_cases_long.tsv"
+    shell: 
+        """
+           cut -f 1 {input} | sed 1d | tr "_" "\t" | cut -f 2 | bawk '{{print substr($1,0,10)}}' > {output}
+        """
+
+rule common_sanger:
+    input: t="all_cases_long.tsv", w=SEQ_SANGER
+    output: "common_cases_sanger.tsv"
+    shell:
+        """
+            filter_1col 1 <(cut -f 2 {input.w}) < {input.t} > {output}
+        """
+
+rule sanger:
+    input: c="common_cases_sanger.tsv", m=SANGER_MUT_GENES, targeted=TARGETED_GENES
+    output: "sanger_muts_hrgenes.tsv"
+    shell:
+        """
+            sed 1d {input.m} | cut -f 1,8 |  filter_1col 1 {input.c} | filter_1col 2 <(cut -f 2 {input.targeted} | sed 1d) | sort > {output}
+        """
+
+rule targeted_sanger:
+    input: m="muts_gene_crc.tsv", c="common_cases_sanger.tsv", g="common_genes_sanger"
+    output: "targeted_muts_commonsanger.tsv"
+    shell:
+        """
+            sed 1d {input.m} | bawk '{{print substr($1,0,10),$2}}' | filter_1col 1 {input.c} | filter_1col 2 <(cut -f 2 {input.g}) | sort > {output}
+        """
+# TODO recuperare coordinate mutazioni e fare jaccard
