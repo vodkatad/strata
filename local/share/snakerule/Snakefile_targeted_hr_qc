@@ -117,4 +117,33 @@ rule targeted_sanger:
         """
             sed 1d {input.m} | bawk '{{print substr($1,0,10),$2}}' | filter_1col 1 {input.c} | filter_1col 2 <(cut -f 2 {input.g}) | sort > {output}
         """
-# TODO recuperare coordinate mutazioni e fare jaccard
+
+rule muts_sanger_table:
+    input: "sanger_muts_hrgenes.tsv"
+    output: "muts_sanger_pivot.txt"
+    run:
+         import pandas
+         data = pandas.read_csv(input[0], sep="\t", header=None, names=['pdx','mut'])
+         pt = pandas.pivot_table(data, index=['pdx'], columns='mut', aggfunc=lambda x: 1, fill_value=0)
+         pt.to_csv(output[0], sep='\t', index=True)
+
+rule muts_targeted_table:
+    input: "targeted_muts_commonsanger.tsv"
+    output: "muts_targeted_pivot.txt"
+    run:
+         import pandas
+         data = pandas.read_csv(input[0], sep="\t", header=None, names=['pdx','mut'])
+         pt = pandas.pivot_table(data, index=['pdx'], columns='mut', aggfunc=lambda x: 1, fill_value=0)
+         pt.to_csv(output[0], sep='\t', index=True)
+
+rule jaccard_genes:
+    input: sanger="sanger_muts_hrgenes.tsv", targeted="muts_targeted_pivot.txt"
+    output: "jaccards_genes"
+    shell:
+        """
+            Rscript -e '\
+                s <- read.table("{input.sanger}", sep="\t", header=TRUE, row.names=1)
+            ' > {output}
+        """
+
+# TODO recuperare coordinate mutazioni, troppo pochi geni per fare jaccard, che si puo` fare?

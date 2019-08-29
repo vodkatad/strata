@@ -84,7 +84,8 @@ write.table(res, file=linearOut, sep="\t", quote=FALSE)
 
 #mres <- merge(res, annot, by.x="row.names", by.y="gs")
 mres <- res
-if (snakemake@wildcards[[1]] != "genepathways") {
+#if (snakemake@wildcards[[1]] != "genepathways") {
+if (!grepl("pathways" ,snakemake@wildcards[[1]])) {
     library ("AnnotationDbi")
     library("org.Hs.eg.db") # very generic indeed! Bravo Elena!
     if (grepl("cnv",snakemake@wildcards[[1]])) {

@@ -1,8 +1,8 @@
 include: "conf.sk"
 #3 for other muts file
 rule reduce_mut_gene:
-    input: MUTS
-    output: "muts_gene.txt"
+    input: "muts_{impact}gene_crc.tsv"
+    output: "muts_{impact}gene.txt"
     shell:
         """
             sed 1d {input} | bawk '{{print substr($1,0,7), $2}}' > {output}

@@ -11,24 +11,54 @@ CNV=BASE+"/all_cnv.txt"
 VOLUMES=BASE+"/chemio_dec_2019.txt"
 W3=BASE+"/w3.txt"
 CNV_GENES=BASE+"/all_cnv.txt"
-PATHWAYS=PRJ_ROOT+"/local/share/data/targeted_hr/hr_all.txt"
+PATHWAYS=PRJ_ROOT+"/local/share/data/targeted_hr/hr_pathways.txt"
 #aplot) [pre_irino]egrassi@hactarlogin$ cat DTB_WESdata_CompleteStudy_muts.txt | cut -f 4,5 | sed 1d | sort | uniq > gs_desc
 GS_DESC=BASE+"/../gs_desc"
 MSI=BASE+"/MSI"
 
+WANTED=BASE+"/../../targeted_hr/wanted_conseq2"
+
+#(base) grassi@philae:~/strata/local/share/data/pre_irino$ zcat ..//targeted_hr/Results/Results_DNA/02_Variants/Oncology/PON_1174064*.vcf.gz | grep -v "^#" | grep -w PASS | cut -f 8 | tr "|" "\\t" | cut -f 3| sort | uniq -c
+#     17 HIGH
+#     89 LOW
+#    151 MODERATE
+#    122 MODIFIER
+def get_filter(wildcards):
+    all = ["HIGH","MODERATE","MODIFIER","LOW"]
+    wanted = []
+    for m in all:
+        wanted.append(m)
+        if m==wildcards.impact:
+            break
+    return wanted
+
 rule mut_gene:
-    output: "muts_gene_nocrc.tsv"
-    input: PRJ_ROOT+"/local/share/data/targeted_hr/Results/Results_DNA/02_Variants/Oncology/"
+    output: "{impact}_muts_gene_nocrc.tsv"
+    input: dir=PRJ_ROOT+"/local/share/data/targeted_hr/Results/Results_DNA/02_Variants/Oncology/", wanted=WANTED
+    params: w=get_filter
     shell: 
         """
-            for f in  {input}/*.vcf.gz; do \
-                (zcat $f  | grep -v "^#" | grep -w PASS | cut -f 8 | tr '|' "\\t" | bawk '$3=="HIGH"'| cut -f 4 | bawk  -v f=$f '{{print $1,f}}' | tr "_" "\\t" | cut -f 1,6) || true ; \
+            echo {params.w} | tr " " "\\n" > {output}.tmp
+            for f in  {input.dir}/*.vcf.gz; do \
+                (zcat $f  | grep -v "^#" | grep -w PASS | cut -f 8 | tr '|' "\\t" | filter_1col 3 {output}.tmp | cut -f 4 | bawk  -v f=$f '{{print $1,f}}' | tr "_" "\\t" | cut -f 1,6) || true ; \
+            done > {output}
+            rm {output}.tmp
+        """
+
+rule mut_gene2:
+    output: "nonsyn_muts_gene_nocrc.tsv"
+    input: dir=PRJ_ROOT+"/local/share/data/targeted_hr/Results/Results_DNA/02_Variants/Oncology/", wanted=WANTED
+    shell: 
+        """
+            for f in  {input.dir}/*.vcf.gz; do \
+                (zcat $f  | grep -v "^#" | grep -w PASS | cut -f 8 | tr '|' "\\t" | filter_1col 2 {input.wanted} | cut -f 4 | bawk  -v f=$f '{{print $1,f}}' | tr "_" "\\t" | cut -f 1,6) || true ; \
             done > {output}
         """
 
+
 rule translate:
-    input: muts="muts_gene_nocrc.tsv", dictio=DICTIO_CRC
-    output: "muts_gene_crc.tsv"
+    input: muts="{impact}_muts_gene_nocrc.tsv", dictio=DICTIO_CRC
+    output: "muts_{impact}gene_crc.tsv"
     shell:
         """
             echo -e "crc\\tgene" > {output}
