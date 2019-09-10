@@ -1,0 +1,91 @@
+DEBUG="yes"
+PRJ_ROOT="../.."
+SRC_DIR=PRJ_ROOT+"/local/src"
+BIN_DIR=PRJ_ROOT+"/local/bin"
+
+BASE=PRJ_ROOT+"/local/share/data/pre_irino/dec2018"
+MUTS="muts_gene_crc.tsv"
+DICTIO_CRC=PRJ_ROOT+"/local/share/data/targeted_hr/PJ1903090-SF-Integragen-Targeted-Seq.tsv"
+SANGER=BASE+"/../DTB_TargetedNGS_SangerInstitute_DriverMutations.txt"
+CNV=BASE+"/all_cnv.txt"
+VOLUMES=BASE+"/chemio_dec_2019.txt"
+W3=BASE+"/w3.txt"
+CNV_GENES=BASE+"/all_cnv.txt"
+PATHWAYS=PRJ_ROOT+"/local/share/data/targeted_hr/hr_pathways.txt"
+#aplot) [pre_irino]egrassi@hactarlogin$ cat DTB_WESdata_CompleteStudy_muts.txt | cut -f 4,5 | sed 1d | sort | uniq > gs_desc
+GS_DESC=BASE+"/../gs_desc"
+MSI=BASE+"/MSI"
+
+WANTED=BASE+"/../../targeted_hr/wanted_conseq2"
+
+AF_CUTOFF=0.3
+
+rule all_af:
+    input: dir=PRJ_ROOT+"/local/share/data/targeted_hr/Results/Results_DNA/02_Variants/Oncology/"
+    output: "all_af.gz"
+    shell:
+        """
+            zcat {input.dir}/*vcf.gz | grep -v "^#" | grep -w PASS | cut -f 1,2,3,4,5,10 | tr ":" "\\t" | bawk '{{print $1";"$2";"$4"-"$5";"$3,$8}}' | gzip > {output}
+        """
+
+rule min_af:
+    input: af="all_af.gz"  
+    output: minaf="min_af.gz"
+    script: SRC_DIR+"/repeat_group_min.R"
+
+
+rule all_conseq:
+    input: dir=PRJ_ROOT+"/local/share/data/targeted_hr/Results/Results_DNA/02_Variants/Oncology/"
+    output: "all_conseq.gz"
+    shell:
+        """
+            zcat {input.dir}/*vcf.gz | grep -v "^#" | grep -w PASS | cut -f 1,2,3,4,5,8 | tr "|" "\\t" | bawk '{{print $1";"$2";"$4"-"$5";"$3,$7}}' | sort | uniq | gzip > {output}
+        """
+
+rule filters:
+    input: conseq="all_conseq.gz", af="min_af.gz", wanted=WANTED
+    output: "wanted"
+    params: thr=AF_CUTOFF
+    shell:
+        """
+            zcat {input.conseq} | translate -a <(zcat {input.af}) 1 | filter_1col 3 {input.wanted} | bawk '$2>{params.thr}' > {output}
+        """
+
+rule mut_gene:
+    output: "nonsyn_muts_gene_nocrc.tsv"
+    input: dir=PRJ_ROOT+"/local/share/data/targeted_hr/Results/Results_DNA/02_Variants/Oncology/", wanted="wanted"
+    shell: 
+        """
+            for f in  {input.dir}/*.vcf.gz; do \
+                (zcat $f  | grep -v "^#" | grep -w PASS | cut -f 1,2,3,4,5,8 | tr '|' "\\t" | bawk '{{print $1";"$2";"$4"-"$5";"$3,$9}}' | filter_1col 1 <(cut -f 1 {input.wanted}) | cut -f 2 | bawk  -v f=$f '{{print $1,f}}' | tr "_" "\\t" | cut -f 1,6) || true ; \
+            done > {output}
+        """
+
+
+rule mut_cosmic:
+    output: "cosmic_muts_gene_nocrc.tsv"
+    input: dir=PRJ_ROOT+"/local/share/data/targeted_hr/Results/Results_DNA/02_Variants/Oncology/", wanted=WANTED
+    shell:
+        """
+            for f in  {input.dir}/*.vcf.gz; do \
+                (zcat $f  | grep -v "^#" | grep -w PASS | cut -f 8 | tr '|' "\\t" | filter_1col 2 {input.wanted} | bawk '$18~/COSM/ {{print $4}}'| cut -f 4 | bawk  -v f=$f '{{print $1,f}}' | tr "_" "\\t" | cut -f 1,6) || true ; \
+            done > {output}
+        """
+
+
+rule translate:
+    input: muts="{impact}_muts_gene_nocrc.tsv", dictio=DICTIO_CRC
+    output: "muts_{impact}gene_crc.tsv"
+    shell:
+        """
+            echo -e "crc\\tgene" > {output}
+            sed 1d {input.muts} | translate <(sed 1d {input.dictio} | cut -f 1 | tr "_" "\\t") 2  | bawk '{{print $2,$1}}' >> {output}
+        """
+
+rule cases:
+    input: DICTIO_CRC
+    output: "all_cases.tsv"
+    shell: 
+        """
+           cut -f 1 {input} | sed 1d | tr "_" "\t" | cut -f 2 | bawk '{{print substr($1,0,7)}}' > {output}
+        """
