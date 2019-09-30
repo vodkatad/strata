@@ -72,3 +72,15 @@ rule cases:
         """
            cut -f 1 {input} | sed 1d | tr "_" "\t" | cut -f 2 | bawk '{{print substr($1,0,7)}}' > {output}
         """
+
+
+rule mergione:
+    input: hr="muts_nonsyngene.txt", sanger="../exomes_other_dec18/muts_sanger.txt"
+    output: "muts_ATRmergegene_crc.tsv"
+    shell:
+        """
+        grep -w ATR {input.hr} > {output}.tmp
+        grep -w ATR {input.sanger} >> {output}.tmp
+        sort {output}.tmp | uniq > {output}
+        """
+

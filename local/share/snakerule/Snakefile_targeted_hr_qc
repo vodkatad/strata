@@ -136,14 +136,95 @@ rule muts_targeted_table:
          pt = pandas.pivot_table(data, index=['pdx'], columns='mut', aggfunc=lambda x: 1, fill_value=0)
          pt.to_csv(output[0], sep='\t', index=True)
 
-rule jaccard_genes:
-    input: sanger="sanger_muts_hrgenes.tsv", targeted="muts_targeted_pivot.txt"
-    output: "jaccards_genes"
+# TODO recuperare coordinate mutazioni, troppo pochi geni per fare jaccard, che si puo` fare?
+
+SANGER_HG38="../exomes_other_dec18/sanger_gene.annovar.hg38.bed"
+
+
+
+rule targeted_bed:
+    input: af="../targeted_hr_AF_filter/min_af.gz", conseq="../targeted_hr_AF_filter/all_conseq.gz"
+    output: "targeted_hr.bed"
     shell:
         """
-            Rscript -e '\
-                s <- read.table("{input.sanger}", sep="\t", header=TRUE, row.names=1)
-            ' > {output}
+            zcat {input.conseq} | translate -a <(zcat {input.af}) 1 > {output}
+       """
+
+rule all_af:
+    input: dir=PRJ_ROOT+"/local/share/data/targeted_hr/Results/Results_DNA/02_Variants/Oncology/"
+    output: "all_af.gz"
+    shell:
+        """
+            zcat {input.dir}/*vcf.gz | grep -v "^#" | grep -w PASS | cut -f 1,2,3,4,5,10 | tr ":" "\\t" | bawk '{{print $1";"$2";"$4"-"$5";"$3,$8}}' | gzip > {output}
         """
 
-# TODO recuperare coordinate mutazioni, troppo pochi geni per fare jaccard, che si puo` fare?
+rule all_genes_coord:
+    input: dir=PRJ_ROOT+"/local/share/data/targeted_hr/Results/Results_DNA/02_Variants/Oncology/"
+    output: "all_genes.bed"
+    shell:
+        """
+            for f in  {input.dir}/*.vcf.gz; do \
+                (zcat $f | grep -v "^#" | grep -w PASS | cut -f 1,2,3,4,5,8 | tr "|" "\\t" | bawk '{{print $1,$2-1,$2,$4"-"$5";"$3,$9}}' | \
+                bawk  -v f=$f '{{print $1,$2,$3,$4,$5,f}}' | tr "_" "\\t" | cut -f 1,2,3,4,5,10) || true ; \
+            done > {output}
+        """
+#(base) grassi@philae:~/strata/dataset/targeted_hr_qc$ head all_genes.bed
+#chr8    94380207        94380208        G-A-.   RAD54B  1174064016
+#chr22   28695145        28695146        C-T-rs730881702 CHEK2   1174064016
+
+#(base) grassi@philae:~/strata/dataset/targeted_hr_AF_filter$ head ../exomes_other_dec18/sanger_gene.annovar.bed
+#chr12   25398283        25398284        C-A-CRC0499_KRAS_rs121913529_TRUE
+#chr12   132502842       132502843       C-T-CRC0499_EP400_rs769289977_FALSE
+rule translate_bed:
+    input: bed="all_genes.bed", dictio=DICTIO_CRC, cases="common_cases_sanger.tsv", genes="common_genes_sanger"
+    output: "all_genes_crc.bed"
+    shell:
+        """
+            cat {input.bed} | translate <(sed 1d {input.dictio} | cut -f 1 | tr "_" "\\t") 6 | tr ";" "\\t" \
+            | bawk '{{print $1,$2,$3,$4,$5,$6,substr($7,0,10)}}' | filter_1col 7 <(bawk '{{print substr($1,0,10)}}' < {input.cases})  \
+            | filter_1col 6 <(cut -f 2 {input.genes}) \
+            | bawk '{{print $1,$2,$3,$4"-"substr($7,0,7)"_"$6}}' > {output}
+        """
+
+
+rule filter_sanger:
+    input: genes="common_genes_sanger", cases="common_cases_sanger.tsv", muts=SANGER_HG38
+    output: "sanger.bed"
+    shell:
+        """
+            tr "_" "\\t" < {input.muts}  | tr "-" "\\t" | cut -f 1,2,3,4,5,6,7 | filter_1col 7 <(cut -f 2 {input.genes}) | \
+            filter_1col 6 <(bawk '{{print substr($1,0,7)}}' {input.cases}) | bawk '{{print $1,$2,$3,$4"-"$5"-"$6"_"$7}}' > {output}
+        """
+
+
+### to do jaccard vs our pipeline
+rule merge_targeted:
+    input: bed=PRJ_ROOT+"/local/share/data/targeted_hr/targeted_sorted.bed"
+    output: "merged_targeted.vcf"
+    params: dir=PRJ_ROOT+"/local/share/data/targeted_hr/Results/Results_DNA/02_Variants/Oncology/"
+    shell:
+        """ 
+            vcf=$(ls {params.dir}/*vcf.gz)
+            mkdir allvcf
+            n=1
+            for f in $vcf; do \
+                echo $f; \
+                bcftools annotate -O z -x FORMAT/QSS -I '%CHROM:%POS:%REF:%ALT' $f > allvcf/$n.vcf.gz; \
+                tabix -p vcf allvcf/$n.vcf.gz; \
+                n=$((n + 1)); \
+            done
+            vcf=$(ls allvcf/*vcf.gz)
+            bcftools merge --missing-to-ref -f .,PASS -m none -o {output}.vcf.tmp $(echo $vcf)
+            bedtools intersect -header -u -a {output}.vcf.tmp -b {input.bed} > {output}
+            rm -rf allvcf
+            rm {output}.vcf.tmp
+        """
+
+rule table:
+    input: "merged_targeted.vcf"
+    output: table="merged.table_nomultiallele"
+    params: nsamples=70
+    shell:
+        """
+             cat {input} | grep -v "^##" |  perl -ane '@gt=splice(@F,9,{params.nsamples}); $gt=""; foreach $g (@gt) {{ if ($.==1) {{$gt.=$g."\\t";}} else {{ @afs = split(":",$g); if ($afs[2] eq ".") {{$afs[2]=0;}} $gt.=$afs[2]."\\t";}} }} chop($gt) ; print $F[2]."\\t".$gt."\\n";' | grep -v "," > {output.table}
+        """

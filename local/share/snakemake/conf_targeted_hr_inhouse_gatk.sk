@@ -1,0 +1,79 @@
+DEBUG="yes"
+PRJ_ROOT="../.."
+SRC_DIR=PRJ_ROOT+"/local/src"
+BIN_DIR=PRJ_ROOT+"/local/bin"
+
+BASE=PRJ_ROOT+"/local/share/data/pre_irino/dec2018"
+MUTS="muts_gene_crc.tsv"
+DICTIO_CRC=PRJ_ROOT+"/local/share/data/targeted_hr/PJ1903090-SF-Integragen-Targeted-Seq.tsv"
+SANGER=BASE+"/../DTB_TargetedNGS_SangerInstitute_DriverMutations.txt"
+CNV=BASE+"/all_cnv.txt"
+VOLUMES=BASE+"/chemio_dec_2019.txt"
+W3=BASE+"/../sept2019/w3.txt"
+CNV_GENES=BASE+"/all_cnv.txt"
+PATHWAYS=PRJ_ROOT+"/local/share/data/targeted_hr/hr_pathways.txt"
+#aplot) [pre_irino]egrassi@hactarlogin$ cat DTB_WESdata_CompleteStudy_muts.txt | cut -f 4,5 | sed 1d | sort | uniq > gs_desc
+GS_DESC=BASE+"/../gs_desc"
+MSI=BASE+"/MSI"
+
+
+AF_CUTOFF=0.3
+
+rule cases:
+    input: DICTIO_CRC
+    output: "all_cases.tsv"
+    shell:
+        """
+           cut -f 1 {input} | sed 1d | tr "_" "\t" | cut -f 2 | bawk '{{print substr($1,0,7)}}' > {output}
+        """
+
+rule build_long:
+    input: annot=PRJ_ROOT+"/local/share/data/targeted_hr/our_pipeline/merged.hg38_multianno.txt", af=PRJ_ROOT+"/local/share/data/targeted_hr/our_pipeline/merged.table_nomultiallele"
+    output: "gene_annot_muts.tsv"
+    params: tool=BIN_DIR+"/select_annovar_table"
+    shell:
+        """
+            {params.tool} {input.annot} {input.af} > {output}
+        """
+        
+
+rule mut_gene:
+    output: "muts_nonsyngene_crc.tsv"
+    input: "gene_annot_muts.tsv"
+    shell: 
+        """
+            bawk '$6!="synonymous SNV" {{print $1,$4}}' < {input} > {output}
+        """
+
+
+rule mut_cosmic:
+    output: "muts_cosmicgene_crc.tsv"
+    input: "gene_annot_muts.tsv"
+    shell: 
+        """
+            bawk '$6!="synonymous SNV" && $7 != "." {{print $1,$4}}' < {input} > {output}
+        """
+
+###
+#rule mergione:
+#    input: hr="muts_nonsyngene.txt", sanger="../exomes_other_dec18/muts_sanger.txt"
+#    output: "muts_ATRmergegene_crc.tsv"
+#    shell: 
+#        """
+#        grep -w ATR {input.hr} > {output}.tmp
+#        grep -w ATR {input.sanger} >> {output}.tmp
+#        sort {output}.tmp | uniq > {output}
+#        """
+#
+#rule allcasesmergione:
+#    input: "all_cases.tsv", "../exomes_other_dec18/muts_sanger.txt"
+#    output: "all_cases_merged.tsv"
+#    shell: "cut -f 1 {input} | sort | uniq > {output}"
+#
+#rule modello_mergione:
+#    input: volumes=W3, pivot="muts_ATRmergegene_pivot.txt", msi=MSI, all_samples="all_cases_merged.tsv"
+#    output: linear="{type}_linear_models.tsv", logistic="{type}_logistic_models.tsv", linearxls="{type}_linear_models.xls"
+#    params: debug=DEBUG, pdx="pdx", cutoff=3, plotdir="{type}_plots"
+#    script: SRC_DIR+"/models_vol_pivot_listsamples.R"
+#
+#ruleorder: modello_mergione > models
