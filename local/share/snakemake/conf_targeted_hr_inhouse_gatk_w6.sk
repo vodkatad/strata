@@ -69,14 +69,6 @@ rule mut_PON_gene:
         """
             bawk '$6!="synonymous SNV" {{print $1,$4,$3}}' < {input.muts} | filter_1col 3 -v {input.pon} | cut -f 1,2 > {output}
         """
-
-rule mut_PON_gene_AF:
-    output: "muts_{AF}-nonsynPONgene_crc.tsv"
-    input: muts="gene_annot_muts.tsv", pon="pon_filter"
-    shell: 
-        """
-            bawk '$6!="synonymous SNV" &&  $2 > {wildcards.AF} {{print $1,$4,$3}}' < {input.muts} | filter_1col 3 -v {input.pon} | cut -f 1,2 > {output}
-        """
 ###
 rule sanger_all:
     input: mut=SANGER
