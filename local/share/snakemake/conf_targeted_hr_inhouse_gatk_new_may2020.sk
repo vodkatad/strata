@@ -9,7 +9,7 @@ DICTIO_CRC=PRJ_ROOT+"/local/share/data/targeted_hr/PJ1903090-SF-Integragen-Targe
 SANGER=BASE+"/../DTB_TargetedNGS_SangerInstitute_DriverMutations.txt"
 CNV=BASE+"/all_cnv.txt"
 VOLUMES=BASE+"/chemio_dec_2019.txt"
-W=BASE+"/../sept2019/w6.txt"
+W=BASE+"/../sept2019/w3.txt"
 CNV_GENES=BASE+"/all_cnv.txt"
 PATHWAYS=PRJ_ROOT+"/local/share/data/targeted_hr/hr_pathways.txt"
 #aplot) [pre_irino]egrassi@hactarlogin$ cat DTB_WESdata_CompleteStudy_muts.txt | cut -f 4,5 | sed 1d | sort | uniq > gs_desc
@@ -28,7 +28,7 @@ rule cases:
         """
 
 rule build_long:
-    input: annot=PRJ_ROOT+"/local/share/data/targeted_hr/our_pipeline/merged.hg38_multianno.txt", af=PRJ_ROOT+"/local/share/data/targeted_hr/our_pipeline/merged.table_nomultiallele"
+    input: annot=PRJ_ROOT+"/local/share/data/targeted_hr/new_gatk/merged.hg38_multianno.txt", af=PRJ_ROOT+"/local/share/data/targeted_hr/new_gatk/merged.table_nomultiallele"
     output: "gene_annot_muts.tsv"
     params: tool=BIN_DIR+"/select_annovar_table"
     shell:
@@ -69,6 +69,14 @@ rule mut_PON_gene:
         """
             bawk '$6!="synonymous SNV" {{print $1,$4,$3}}' < {input.muts} | filter_1col 3 -v {input.pon} | cut -f 1,2 > {output}
         """
+
+rule mut_PON_gene_AF:
+    output: "muts_{AF}-nonsynPONgene_crc.tsv"
+    input: muts="gene_annot_muts.tsv", pon="pon_filter"
+    shell: 
+        """
+            bawk '$6!="synonymous SNV" &&  $2 > {wildcards.AF} {{print $1,$4,$3}}' < {input.muts} | filter_1col 3 -v {input.pon} | cut -f 1,2 > {output}
+        """
 ###
 rule sanger_all:
     input: mut=SANGER
@@ -89,6 +97,7 @@ rule mergione:
         """
 
 # muts_ATRmergegene_crc.tsv manually edited, removing CRC0123 who we decided to filter out
+
 rule allcasesmergione:
     input: "all_cases.tsv", "../exomes_other_dec18/muts_sanger.txt"
     output: "all_cases_merged.tsv"

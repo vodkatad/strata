@@ -87,7 +87,7 @@ rule sanger_all:
         """
 
 rule mergione:
-    input: hr="muts_nonsyngene.txt", sanger="muts_sanger.txt"
+    input: hr="muts_nonsynPONgene.txt", sanger="muts_sanger.txt"
     output: "muts_ATRmergegene_crc.tsv"
     shell: 
         """
@@ -95,6 +95,8 @@ rule mergione:
         grep -w ATR {input.sanger} >> {output}.tmp
         sort {output}.tmp | uniq > {output}
         """
+
+# muts_ATRmergegene_crc.tsv manually edited, removing CRC0123 who we decided to filter out
 
 rule allcasesmergione:
     input: "all_cases.tsv", "../exomes_other_dec18/muts_sanger.txt"
