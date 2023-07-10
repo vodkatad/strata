@@ -111,7 +111,7 @@ plots <- function(wanted, mut, avg) {
 
 wanted <- head(rownames(res), n=20)
 garbage <- lapply(wanted, plots, mutdatafeas, averages)
-
+#[200~https://stats.stackexchange.com/questions/175325/r-why-does-fitting-a-binomial-glm-to-a-3-level-factor-work  idiot!
 averages$class <- ifelse(averages$perc < -50, 'OR', ifelse(averages$perc > 35, 'PD', 'SD'))
 averages$class <- as.factor(averages$class)
 classmodel <- function(mut, avg, samples) {

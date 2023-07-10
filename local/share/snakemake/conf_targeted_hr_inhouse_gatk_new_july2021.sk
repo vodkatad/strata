@@ -8,7 +8,7 @@ MUTS="muts_gene_crc.tsv"
 DICTIO_CRC=PRJ_ROOT+"/local/share/data/targeted_hr/PJ1903090-SF-Integragen-Targeted-Seq.tsv"
 SANGER=BASE+"/../DTB_TargetedNGS_SangerInstitute_DriverMutations.txt"
 CNV=BASE+"/all_cnv.txt"
-W=BASE+"/../may2020/CHEMIO_WATERFALL_PLOT_Eugy_2020maggio_w3.txt"
+W=BASE+"/../july2021/CHEMIO_WATERFALL-PLOT_Eugy-Marco_luglio2021_3w.txt"
 CNV_GENES=BASE+"/all_cnv.txt"
 PATHWAYS=PRJ_ROOT+"/local/share/data/targeted_hr/hr_pathways.txt"
 #aplot) [pre_irino]egrassi@hactarlogin$ cat DTB_WESdata_CompleteStudy_muts.txt | cut -f 4,5 | sed 1d | sort | uniq > gs_desc
