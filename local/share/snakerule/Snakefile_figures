@@ -1,0 +1,43 @@
+SRC_DIR="../../local/src"
+DATA_DIR="../../local/share/data"
+HR_MUTS=DATA_DIR+"/new_gatk/merged.table_nomultiallele"
+HR_MUTS_ANNOT=DATA_DIR+"/new_gatk/merged.hg38_multianno.txt"
+DICTIO_CRC=DATA_DIR+"/PJ1903090-SF-Integragen-Targeted-Seq.tsv"
+
+rule cases:
+    input: DICTIO_CRC
+    output: "all_cases_hr.tsv"
+    shell:
+        """
+           cut -f 1 {input} | sed 1d | tr "_" "\\t" | cut -f 2 | bawk '{{print substr($1,0,7)}}' > {output}
+        """
+
+# the corresponding rule for biobanca targeted data could pick the top 10 mutated genes with VAF > 0.05 and then add Livio's requests (xeno's data, but check
+# your notes because I am not 100% sure).
+# will print genes without any nonsyn mut
+rule convert_to_binary_gene_sample_mat:
+    input: mut=HR_MUTS, annot=HR_MUTS_ANNOT, all_models="all_cases_hr.tsv"
+    params: thr=0.05
+    output: mat="binary_gene_mat.tsv"
+    script: SRC_DIR+"/binarize_hr.R"
+
+# couple check vs old longformat:
+#egrassi@godot:/mnt/trcanmed/snaketree/prj/strata/dataset/figures$ grep -w MUS81 ../targeted_hr_our_july_2021/gene_annot_muts.tsv 
+#egrassi@godot:/mnt/trcanmed/snaketree/prj/strata/dataset/figures$ bawk '$2!=0{print $1,$2}' binary_gene_mat.tsv
+#+ATR
+
+# we need files with CRC models to retain only good models ordered like waterfall3/waterfall6: ./wf_chemio_3_6.txt temporary from MarcoA's mail waterfall chemio 11/07/23
+rule wf_chemio:
+    input: DATA_DIR+"/wf_chemio_3_6.txt"
+    output: w6="w6_waterfall.tsv",w3="w3_waterfall.tsv"
+
+rule hr_oncoprint:
+    input: mutmat="binary_gene_mat.tsv", wf="{week}_waterfall.tsv"
+    output: "{week}_hr_oncoprint.pdf"
+
+
+# colored oncoprint for hr
+
+# biobanca's data
+
+# put together suppl table 2
