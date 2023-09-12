@@ -30,10 +30,16 @@ rule convert_to_binary_gene_sample_mat:
 rule wf_chemio:
     input: DATA_DIR+"/wf_chemio_3_6.txt"
     output: w6="w6_waterfall.tsv",w3="w3_waterfall.tsv"
+    shell: 
+        """
+           cut -f 1,2 {input} | grep -v CASE | sort -gk2,2 -r > {output.w3}  
+           bawk '$3!=""{{print $1,$3}}' {input} | grep -v CASE| sort -gk2,2 -r > {output.w6}  
+        """
 
 rule hr_oncoprint:
     input: mutmat="binary_gene_mat.tsv", wf="{week}_waterfall.tsv"
-    output: "{week}_hr_oncoprint.pdf"
+    output: op="{week}_hr_oncoprint.pdf", op_data="{week}_hr_oncoprint.Rdata", opwf="{week}_hr_oncoprintwf.pdf", opmute="{week}_hr_oncoprintmute.pdf"
+    script: SRC_DIR+"/oncoprint_binary.R"
 
 
 # colored oncoprint for hr
