@@ -68,7 +68,8 @@ op3 <- oncoPrint(mat_list, alter_fun = alter_fun, col = col, row_order = names(s
                  remove_empty_columns = FALSE, remove_empty_rows = FALSE, show_row_names=FALSE, show_column_names=FALSE,
                  top_annotation = HeatmapAnnotation(cbar = anno_oncoprint_barplot(),
                                                     Irinotecan = anno_barplot(wf$perc,  gp = gpar(fill = get_recist(wf$perc))),
-                                                    annotation_name_gp=gpar(fontsize=8), height = unit(4, "cm")), show_pct=FALSE)
+                                                    annotation_name_gp=gpar(fontsize=0), height = unit(4, "cm")), show_pct=FALSE,
+                 heatmap_legend_param=list())
 
 pdf(opmute_f, width=10, height=6, family="sans")
 print(op3)

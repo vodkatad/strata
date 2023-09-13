@@ -1,8 +1,8 @@
 SRC_DIR="../../local/src"
 DATA_DIR="../../local/share/data"
-HR_MUTS=DATA_DIR+"/new_gatk/merged.table_nomultiallele"
+HR_MUTS=DATA_DIR+"/new_gatk/merged.table_nomultiallele_CRC00578"
 HR_MUTS_ANNOT=DATA_DIR+"/new_gatk/merged.hg38_multianno.txt"
-DICTIO_CRC=DATA_DIR+"/PJ1903090-SF-Integragen-Targeted-Seq.tsv"
+DICTIO_CRC=DATA_DIR+"/PJ1903090-SF-Integragen-Targeted-Seq_no578.tsv"
 
 rule cases:
     input: DICTIO_CRC
@@ -10,6 +10,14 @@ rule cases:
     shell:
         """
            cut -f 1 {input} | sed 1d | tr "_" "\\t" | cut -f 2 | bawk '{{print substr($1,0,7)}}' > {output}
+        """
+
+rule cases_long:
+    input: DICTIO_CRC
+    output: "all_cases_hr_long.tsv"
+    shell:
+        """
+           cut -f 1 {input} | sed 1d | tr "_" "\\t" | cut -f 2  > {output}
         """
 
 # the corresponding rule for biobanca targeted data could pick the top 10 mutated genes with VAF > 0.05 and then add Livio's requests (xeno's data, but check
@@ -41,8 +49,18 @@ rule hr_oncoprint:
     output: op="{week}_hr_oncoprint.pdf", op_data="{week}_hr_oncoprint.Rdata", opwf="{week}_hr_oncoprintwf.pdf", opmute="{week}_hr_oncoprintmute.pdf"
     script: SRC_DIR+"/oncoprint_binary.R"
 
-
 # colored oncoprint for hr
+rule convert_to_ndel_gene_sample_mat:
+    input: mut=HR_MUTS, annot=HR_MUTS_ANNOT, all_models="all_cases_hr.tsv"
+    params: thr=0.05
+    output: mat="nDel_gene_mat.tsv"
+    script: SRC_DIR+"/ndel_hr.R"
+
+
+rule hr_oncoprint_countdel:
+    input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv"
+    output: op="{week}_hr_oncoprintndel.pdf", op_data="{week}_hr_oncoprintndel.Rdata", opwf="{week}_hr_oncoprintndelwf.pdf", opmute="{week}_hr_oncoprintndelmute.pdf"
+    script: SRC_DIR+"/oncoprint_ndel.R"
 
 # biobanca's data
 
