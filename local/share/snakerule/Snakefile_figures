@@ -36,7 +36,7 @@ rule convert_to_binary_gene_sample_mat:
 
 # we need files with CRC models to retain only good models ordered like waterfall3/waterfall6: ./wf_chemio_3_6.txt temporary from MarcoA's mail waterfall chemio 11/07/23
 rule wf_chemio:
-    input: DATA_DIR+"/wf_chemio_3_6.txt"
+    input: DATA_DIR+"/wf_chemio_3_6_def.txt"
     output: w6="w6_waterfall.tsv",w3="w3_waterfall.tsv"
     shell: 
         """
@@ -50,18 +50,59 @@ rule hr_oncoprint:
     script: SRC_DIR+"/oncoprint_binary.R"
 
 # colored oncoprint for hr
+# add bi-allelic counts TODO
 rule convert_to_ndel_gene_sample_mat:
-    input: mut=HR_MUTS, annot=HR_MUTS_ANNOT, all_models="all_cases_hr.tsv"
+    input: mut=HR_MUTS, annot=HR_MUTS_ANNOT, all_models="all_cases_hr.tsv", wf_models='w3_waterfall.tsv'
     params: thr=0.05
     output: mat="nDel_gene_mat.tsv"
+    log: log="nDel_gene_mat.tsv.log"
     script: SRC_DIR+"/ndel_hr.R"
 
-
 rule hr_oncoprint_countdel:
-    input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv"
-    output: op="{week}_hr_oncoprintndel.pdf", op_data="{week}_hr_oncoprintndel.Rdata", opwf="{week}_hr_oncoprintndelwf.pdf", opmute="{week}_hr_oncoprintndelmute.pdf"
+    input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv", all_genes=DATA_DIR+"/targeted_homologous.tsv"
+    output: op="{week}_hr_oncoprintndel.eps", op_data="{week}_hr_oncoprintndel.Rdata", opwf="{week}_hr_oncoprintndelwf.eps", opmute="{week}_hr_oncoprintndelmute.eps"
+    log: log="{week}_hr_oncoprintndel.pdf.log"
     script: SRC_DIR+"/oncoprint_ndel.R"
 
 # biobanca's data
 
 # put together suppl table 2
+
+rule perle:
+    input: '{qualunque}.svg'
+    output: 'perlati/{qualunque}.svg'
+    shell:
+        """
+            mkdir -p perlati
+            perl -pne "s/textLength='.+px'//; " < {input} > {output}
+        """
+
+## plot depmap POLD1-Irino
+rule plot_depmap_POLD_Irino:
+    input:POLD_Irino="../../local/share/data/POLD1_logTPMpc1_23Q2_Irinotecan_IC50_GDSC2_010823.csv"
+    output:png="depmap_POLD1_Irinotecan.png", eps="depmap_POLD1_Irinotecan.eps", excel_cor="POLD1_logTPMpc1_23Q2_Irinotecan_IC50_GDSC2.xlsx"
+    log: log="correlazione_POLD1_Irinotecan.log"
+    script: SRC_DIR+"/depmap_scatter_POLD1_Irinotecan.R"
+
+## plot depmap FBX-RING
+rule plot_depmap_FBX_RING:
+    input:FBX_POLD="../../local/share/data/FBH1_logTPM_23Q2_RING1_log2TPM_Expression_031023.csv"
+    output:png="depmap_FBX_RING.png", eps="depmap_FBX_RING.eps", excel_cor="FBXO18_logTPM_23Q2_RING1_log2TPM_Expression.xlsx"
+    log: log="correlazione_FBX_RING.log"
+    script: SRC_DIR+"/depmap_RING_FBX_chemiojul23_strata.R"
+
+## comet
+rule comet_assembly:
+    input: DATA_DIR+'/comet/comet_CRC0096unq.tsv', DATA_DIR+'/comet/comet_CRC0196.tsv', DATA_DIR+'/comet/comet_CRC0729.tsv', DATA_DIR+'/comet/comet_first_july2023.tsv'
+    output: "comet.tsv"
+    shell: 
+        """ 
+            head -n1 {input[0]} > {output}
+            cat {input} | grep -v circularity >> {output} 
+        """
+
+rule comet_plot:
+    input: comet="comet.tsv"
+    output: boxplot="comet.eps"
+    log: log="comet.log"
+    script: SRC_DIR+'/comet.R'

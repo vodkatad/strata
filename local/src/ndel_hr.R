@@ -1,8 +1,10 @@
 muts_f <- snakemake@input[['mut']]
 annot_f <- snakemake@input[['annot']]
 models_f <- snakemake@input[['all_models']]
+wf_f <- snakemake@input[['wf_models']]
 outfile <- snakemake@output[['mat']]
 thr <- as.numeric(snakemake@params[['thr']])
+log_f <- snakemake@log[['log']]
 
 mdata <- read.table(muts_f, sep="\t" , header=TRUE)
 anndata <- read.table(annot_f, sep="\t" , header=TRUE, stringsAsFactors = FALSE)
@@ -19,6 +21,14 @@ rownames(anndata) <- paste0('chr', anndata$Chr, ":", anndata$Start, ":", anndata
 rownames(mdata) <- mdata$ID
 mdata$ID <- NULL
 colnames(mdata) <- newcols
+
+##### reduce to wf for results numbers
+wf <- read.table(wf_f, sep="\t", stringsAsFactors = FALSE)
+colnames(wf) <- c('smodel', 'perc')
+
+keep <- intersect(colnames(mdata), wf$smodel)
+logdata <- mdata[ , colnames(mdata) %in% keep,]
+#####
 
 mdata <- ifelse(mdata>thr, 1, 0)
 
@@ -66,3 +76,30 @@ if (length(toadd) > 0) {
 }
 
 write.table(ndeldf, outfile, sep= "\t", quote=FALSE)
+save.image('pippo.Rdata')
+
+tot <- length(logdata[logdata!=0])
+monoallelic <- length(logdata[logdata!=0 & logdata<=0.99])
+biallelic <- length(logdata[logdata>0.99])
+
+# access annotations of muts mutated in at least one sample
+tot_mut <- rownames(logdata)[apply(logdata, 1, function(x){any(x!=0)})]
+log_ann <- anndata[rownames(anndata) %in% tot_mut,]
+ndel <- as.data.frame(apply(log_ann[, wanted_predictions], 1, count_letter))
+colnames(ndel) <- 'n'
+ndel_n <- sum(ndel$n >= 3)
+sink(log_f)
+print('tot muts counting double same mut in two samples')
+print(tot)
+print('monoallelic mut')
+print(monoallelic)
+print((monoallelic/tot)*100)
+print('biallelic mut')
+print(biallelic)
+print((biallelic/tot)*100)
+print('tot muts "normal"')
+print(length(tot_mut))
+print('tot muts with >= 3/5 d')
+print(ndel_n)
+print((ndel_n/length(tot_mut))*100)
+sink()
