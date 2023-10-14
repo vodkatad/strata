@@ -106,3 +106,15 @@ rule comet_plot:
     output: boxplot="comet.eps"
     log: log="comet.log"
     script: SRC_DIR+'/comet.R'
+
+
+rule chisq_torte_rad:
+    input: n=DATA_DIR+"/{n}classes.txt"
+    output: stat="torte_{n}_RAD_chisq.txt"
+    script: SRC_DIR+"/torte_chisq.R"
+
+rule km_rad:
+    input: surviv=DATA_DIR+"/rad51_km.txt"
+    output: "rad51.pdf"
+    log: log="rad51_km.log"
+    script: SRC_DIR+"/RAD_km.R"
