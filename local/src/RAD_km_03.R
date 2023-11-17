@@ -47,7 +47,8 @@ folfiri_nona$status <- ifelse(d$X == 1, 1,0)
 #lab meeting: colonna AA se == 1 evento altrimenti perso al followup.
 # 1 progression 2 toxicity 3 other
 
-folfiri_nona$quartilimerged <- ifelse(folfiri_nona$quartile %in% c('0','1+','2+'), '0, 1+, 2+','3+')
+folfiri_nona <- folfiri_nona[folfiri_nona$quartile %in% c('0', '3+'),]
+folfiri_nona$quartilimerged <- ifelse(folfiri_nona$quartile == '0', '0','3+')
 sfit <- survfit(Surv(PFS, status) ~ quartilimerged, data=folfiri_nona)
 #ggsurvplot(sfit, data = folfiri_nona, pval = TRUE) # pval.method=Log-rank
 #surv_pvalue(sfit)

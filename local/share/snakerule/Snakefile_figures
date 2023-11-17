@@ -1,15 +1,19 @@
 SRC_DIR="../../local/src"
 DATA_DIR="../../local/share/data"
-HR_MUTS=DATA_DIR+"/new_gatk/merged.table_nomultiallele_CRC00578"
-HR_MUTS_ANNOT=DATA_DIR+"/new_gatk/merged.hg38_multianno.txt"
+#HR_MUTS=DATA_DIR+"/new_gatk/merged.table_nomultiallele_CRC00578"
+#HR_MUTS_ANNOT=DATA_DIR+"/new_gatk/merged.hg38_multianno.txt"
+HR_MUTS=DATA_DIR+"/merge_hr_wes/merged.tsv"
+HR_MUTS_ANNOT=DATA_DIR+"/merge_hr_wes/merged_multianno.txt"
 DICTIO_CRC=DATA_DIR+"/PJ1903090-SF-Integragen-Targeted-Seq_no578.tsv"
+DICTIO_WES=DATA_DIR+"/recuperi_wes/cases_def.tsv"
 
 rule cases:
-    input: DICTIO_CRC
+    input: hr=DICTIO_CRC, wes=DICTIO_WES
     output: "all_cases_hr.tsv"
     shell:
         """
-           cut -f 1 {input} | sed 1d | tr "_" "\\t" | cut -f 2 | bawk '{{print substr($1,0,7)}}' > {output}
+           cut -f 1 {input.hr} | sed 1d | tr "_" "\\t" | cut -f 2 | bawk '{{print substr($1,0,7)}}' > {output}
+           cat {input.wes} >> {output}
         """
 
 rule cases_long:
@@ -91,6 +95,20 @@ rule plot_depmap_FBX_RING:
     log: log="correlazione_FBX_RING.log"
     script: SRC_DIR+"/depmap_RING_FBX_chemiojul23_strata.R"
 
+## plot irino-ring
+rule plot_depmap_irino_RING:
+    input:RING_irino="../../local/share/data/RING1_log2TPM_Expression_23Q2_IRINOTECAN_GDSC21088_IC50_91123.csv"
+    output:png="depmap_irino_RING.png", eps="depmap_irino_RING.eps", excel_cor="RING1_log2TPM_Expression_23Q2_IRINOTECAN_GDSC21088_IC50_91123.xlsx"
+    log: log="correlazione_irino_RING.log"
+    script: SRC_DIR+"/depmap_scatter_RING1_Irinotecan.R"
+
+## plot irino-fbx
+rule plot_depmap_irino_FBX:
+    input:FBX_irino="../../local/share/data/FBH1_log2TPM_Expression_23Q2_IRINOTECAN_GDSC21088_IC50_91123.csv"
+    output:png="depmap_irino_FBX.png", eps="depmap_irino_FBX.eps", excel_cor="FBXO18_log2TPM_Expression_23Q2_IRINOTECAN_GDSC21088_IC50_91123.xlsx"
+    log: log="correlazione_irino_fbx.log"
+    script: SRC_DIR+"/depmap_scatter_FBXO18_Irinotecan.R"
+
 ## comet
 rule comet_assembly:
     input: DATA_DIR+'/comet/comet_CRC0096unq.tsv', DATA_DIR+'/comet/comet_CRC0196.tsv', DATA_DIR+'/comet/comet_CRC0729.tsv', DATA_DIR+'/comet/comet_first_july2023.tsv'
@@ -115,6 +133,22 @@ rule chisq_torte_rad:
 
 rule km_rad:
     input: surviv=DATA_DIR+"/rad51_km.txt"
-    output: "rad51.pdf"
+    output: plot="rad51.svg"
     log: log="rad51_km.log"
     script: SRC_DIR+"/RAD_km.R"
+
+rule km_rad_0_3:
+    input: surviv=DATA_DIR+"/rad51_km.txt"
+    output: plot="rad51_03.svg"
+    log: log="rad51_km_03.log"
+    script: SRC_DIR+"/RAD_km_03.R"
+
+## oncoprint top 10 biobanca 
+rule hr_oncoprint_biobanca:
+    input: mutmat="/scratch/trcanmed/DE_RNASeq/dataset/chemio_jul23/mutmat_bin_all_top10.tsv", wf="{week}_waterfall.tsv"
+    output: op="{week}_oncoprint_top10biobanca.eps", op_data="{week}_oncoprint_top10biobanca.Rdata", opwf="{week}_oncoprintwf_top10biobanca.eps", opmute="{week}_oncoprintmute_top10biobanca.eps"
+    script: SRC_DIR+"/oncoprint_biobanca_chemiojul23.R"
+
+
+###
+# filter_1col 1 -v all_cases_hr.tsv  < w3_waterfall.tsv   | cut -f1  > missingHR_lookWES
