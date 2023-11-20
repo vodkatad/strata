@@ -10,6 +10,8 @@ binary_f <- snakemake@input[['mutmat']]
 wf_f <- snakemake@input[['wf']]
 all_genes_f <- snakemake@input[['all_genes']]
 log_f <- snakemake@log[['log']]
+wil_f <- snakemake@output[['wilcox_genes']]
+
 
 mut <- read.table(binary_f, sep="\t")
 wf <- read.table(wf_f, sep="\t", stringsAsFactors = FALSE)
@@ -145,5 +147,28 @@ postscript(opmute_f, width=10.05, height=7, family="sans")
 print(op3)
 graphics.off()
 
+#####
+
 
 save.image(op_data_f)
+
+data_merged <- merge(mut, wf, by.x="row.names", by.y='smodel')
+stopifnot(nrow(mut)==nrow(data_merged))
+
+wilcoxon_perc <- function(gene, mydata) {
+  percwt <- mydata[mydata[,gene] == 0, 'perc']
+  percmut <- mydata[mydata[,gene] != 0, 'perc']
+  if (length(percwt) != 0 && length(percmut) != 0) {
+    wt <- wilcox.test(percwt, percmut)
+    return(c(wt$p.value, length(percwt), length(percmut)))
+  } else {
+    return(c(NA, NA, NA))
+  }
+}
+
+wil <- as.data.frame(t(sapply(colnames(mut), wilcoxon_perc, data_merged)))
+colnames(wil) <- c('pvalue', 'nwt', 'nmut')
+wil$padj <- p.adjust(wil$pvalue, method="BH")
+wil <- wil[order(wil$pvalue),]
+
+write.table(wil, file=wil_f, quote=FALSE, sep="\t")

@@ -64,7 +64,7 @@ rule convert_to_ndel_gene_sample_mat:
 
 rule hr_oncoprint_countdel:
     input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv", all_genes=DATA_DIR+"/targeted_homologous.tsv"
-    output: op="{week}_hr_oncoprintndel.eps", op_data="{week}_hr_oncoprintndel.Rdata", opwf="{week}_hr_oncoprintndelwf.eps", opmute="{week}_hr_oncoprintndelmute.eps"
+    output: op="{week}_hr_oncoprintndel.eps", op_data="{week}_hr_oncoprintndel.Rdata", opwf="{week}_hr_oncoprintndelwf.eps", opmute="{week}_hr_oncoprintndelmute.eps", wilcox_genes="{week}_wilcoxHR.tsv"
     log: log="{week}_hr_oncoprintndel.pdf.log"
     script: SRC_DIR+"/oncoprint_ndel.R"
 
