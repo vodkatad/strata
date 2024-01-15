@@ -1,0 +1,58 @@
+import os
+def find_prj_root(path=os.getcwd()):
+    if os.path.isfile(os.path.join(path,'.PRJ_ROOT')):
+        return path
+    else:
+        if path:
+            return find_prj_root(os.path.dirname(path))
+        else:
+            raise Exception('Can not find the PRJ_ROOT directory')
+
+PRJ_ROOT=find_prj_root()
+BIOINFO_ROOT = os.getenv('BIOINFO_ROOT')
+SNAKE_ROOT=os.getenv('SNAKE_ROOT')
+
+BIN_DIR=PRJ_ROOT+'/local/bin'
+SRC_DIR=PRJ_ROOT+'/local/src'
+
+#egrassi@godot:/mnt/trcanmed/snaketree/prj/snakegatk/dataset/biobanca_shallowseq_pdo$ grep "-" all_aligned_dedup.tsv > passed_qc.tsv_test 
+#xeno is empty
+QC_X=SNAKE_ROOT+'/prj/snakegatk/dataset/biobanca_shallowseq_pdx/passed_qc.tsv'
+QC_O=SNAKE_ROOT+'/prj/snakegatk/dataset/biobanca_shallowseq_pdo/passed_qc.tsv'
+X_BAM=SNAKE_ROOT+'/prj/snakegatk/dataset/biobanca_shallowseq_pdx/align/markedDup_'
+O_BAM=SNAKE_ROOT+'/prj/snakegatk/dataset/biobanca_shallowseq_pdo/align/markedDup_'
+
+def define_bam(qc, prefix):
+    import os
+    def read(file):
+        res = []
+        with open(file) as qc:
+            for line in qc.readlines():
+                fields = line.split('\t')
+                res.append(fields[0])
+        return(res)
+    f = read(qc)
+    def checkife(samples,prefix):
+        res = []
+        for s in samples:
+            w = prefix+s+".sorted.bam"
+            if os.path.exists(w):
+                res.append(w)
+        return(res)
+    res = checkife(f, prefix)
+    return(res)
+
+rule bamfiles:
+    params: x_bams=define_bam(QC_X, X_BAM), o_bams=define_bam(QC_O, O_BAM)
+    output: xeno="xeno_bamfiles_path.tsv", pdo="pdo_bamfiles_path.tsv"
+    run:
+        with open(output.xeno, 'w') as o:
+            for b in params.x_bams:
+                print(b, file=o)
+        with open(output.pdo, 'w') as o:
+            for b in params.o_bams:
+                print(b, file=o)
+
+# for qdnaseq
+BIN_SIZE=15
+CORES=8
