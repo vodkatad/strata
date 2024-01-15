@@ -143,10 +143,16 @@ rule km_rad_0_3:
     log: log="rad51_km_03.log"
     script: SRC_DIR+"/RAD_km_03.R"
 
+rule km_rad_01_23:
+    input: surviv=DATA_DIR+"/rad51_km.txt"
+    output: plot="rad51_01_23.svg"
+    log: log="rad51_km_01_23.log"
+    script: SRC_DIR+"/RAD_km_01_23.R"
+
 ## oncoprint top 10 biobanca 
 rule hr_oncoprint_biobanca:
     input: mutmat="/scratch/trcanmed/DE_RNASeq/dataset/chemio_jul23/mutmat_bin_all_top10.tsv", wf="{week}_waterfall.tsv"
-    output: op="{week}_oncoprint_top10biobanca.eps", op_data="{week}_oncoprint_top10biobanca.Rdata", opwf="{week}_oncoprintwf_top10biobanca.eps", opmute="{week}_oncoprintmute_top10biobanca.eps"
+    output: op="{week}_oncoprint_top10biobanca.eps", op_data="{week}_oncoprint_top10biobanca.Rdata", opwf="{week}_oncoprintwf_top10biobanca.eps", opmute="{week}_oncoprintmute_top10biobanca.eps", wilcox_genes="{week}_wilcox_top10biobanca.tsv"
     script: SRC_DIR+"/oncoprint_biobanca_chemiojul23.R"
 
 

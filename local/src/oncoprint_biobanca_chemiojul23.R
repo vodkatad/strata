@@ -1,5 +1,6 @@
 library(ComplexHeatmap)
 library(ggplot2)
+library(tidyverse)
 
 op_f <- snakemake@output[['op']]
 opwf_f <- snakemake@output[['opwf']]
@@ -7,6 +8,7 @@ opmute_f <- snakemake@output[['opmute']]
 op_data_f <- snakemake@output[['op_data']]
 binary_f <- snakemake@input[['mutmat']]
 wf_f <- snakemake@input[['wf']]
+wil_f <- snakemake@output[['wilcox_genes']]
 
 
 mut <- read.table(binary_f, sep="\t")
@@ -20,6 +22,11 @@ mut2 <- data.frame(matrix(nrow = length(chemionobio), ncol = ncol(mut)))
 rownames(mut2) <- chemionobio
 colnames(mut2) <- colnames(mut)
 mut <- rbind(mut, mut2)
+ordine_casi <- wf$smodel
+mut$model <- rownames(mut)
+#mut <- mut[, ordine_casi]
+mut <- mut %>% filter(model %in% ordine_casi)
+mut$model <- NULL
 # bionochemio <- setdiff(rownames(mut), wf$smodel)
 # mut$case <- rownames(mut)
 # mut <- mut %>% filter(!case %in% bionochemio)
@@ -56,9 +63,9 @@ mat_list <- ifelse(mat_list==1, "Mut", ifelse(mat_list==0, "wt", "None"))
 
 
 
-ordine_casi <- wf$smodel
+#ordine_casi <- wf$smodel
 ordered_mat_list <- mat_list[, ordine_casi]
-print(length(ordine_casi))
+#print(length(ordine_casi))
 
 #oncoPrint(mat_list2, alter_fun = alter_fun, col = col)
 op <- oncoPrint(ordered_mat_list, alter_fun = alter_fun, col = col, row_order = names(su), column_order=wf$smodel,
@@ -115,3 +122,24 @@ postscript(opmute_f, width=9.4, height=7, family="sans")
 print(op3)
 graphics.off()
 save.image(op_data_f)
+
+data_merged <- merge(mut, wf, by.x="row.names", by.y='smodel')
+stopifnot(nrow(mut)==nrow(data_merged))
+
+wilcoxon_perc <- function(gene, mydata) {
+  percwt <- mydata[mydata[,gene] == 0, 'perc']
+  percmut <- mydata[mydata[,gene] != 0, 'perc']
+  if (length(percwt) != 0 && length(percmut) != 0) {
+    wt <- wilcox.test(percwt, percmut)
+    return(c(wt$p.value, length(percwt), length(percmut)))
+  } else {
+    return(c(NA, NA, NA))
+  }
+}
+
+wil <- as.data.frame(t(sapply(colnames(mut), wilcoxon_perc, data_merged)))
+colnames(wil) <- c('pvalue', 'nwt', 'nmut')
+wil$padj <- p.adjust(wil$pvalue, method="BH")
+wil <- wil[order(wil$pvalue),]
+
+write.table(wil, file=wil_f, col.names = TRUE, row.names = TRUE, quote = FALSE, sep = "\t")
