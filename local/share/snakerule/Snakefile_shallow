@@ -1,30 +1,10 @@
 include: './conf.sk'
 
-rule qdnaseq_test:
-    input: "bamfiles_path.tsv"
-    output: cn="qdnaseq/cn_log2.tsv", plot="qdnaseq/noise_filtered.pdf", image="qdnaseq/qdnaseq.RData"
-    params: tool=BIN_DIR+"/qdnaseq", bin_size=BIN_SIZE, cores=CORES, dir="qdnaseq"
-    shell:
-        """
-            mkdir -p {params.dir}
-            cd {params.dir} && {params.tool} -f ../{input} -b {params.bin_size} -c {params.cores}
-        """
-
-rule qdnaseq_segment_test:
-    input: rdata="qdnaseq/qdnaseq.RData"
-    output: segm="qdnaseq/cn_segm.tsv", calls="qdnaseq/cn_calls.tsv"
-    params: tool=BIN_DIR+"/qdnaseq_segmentation", cores=CORES
-    log: "qdnaseq/segm_call.log"
-    shell:
-        """
-            {params.tool} -r {input.rdata} -s {output.segm} -a {output.calls} -c {params.cores} &> {log}
-        """
-
-###################### "real" biobanca files block
+# kind is new or all
 rule qdnaseq:
-    input: "bamfiles_path.tsv"
-    output: cn="qdnaseq/cn_log2.tsv", plot="qdnaseq/noise_filtered.png", image="qdnaseq/qdnaseq.RData"
-    params: tool=BIN_DIR+"/qdnaseq", bin_size=BIN_SIZE, cores=CORES, dir="qdnaseq"
+    input: "{kind}_bamfiles_path.tsv"
+    output: cn="{kind}_qdnaseq/cn_log2.tsv", plot="{kind}_qdnaseq/noise_filtered.pdf", image="{kind}_qdnaseq/qdnaseq.RData"
+    params: tool=BIN_DIR+"/qdnaseq", bin_size=BIN_SIZE, cores=CORES, dir="{kind}_qdnaseq"
     shell:
         """
             mkdir -p {params.dir}
@@ -34,10 +14,10 @@ rule qdnaseq:
 #output: segm="{kind}_qdnaseq/cn_segm.tsv", calls="{kind}_qdnaseq/cn_calls.tsv", seg="{kind}_qdnaseq/cn_seg.seg", rdata="{kind}_qdnaseq/cn_seg.Rdata"
 # -g  {output.seg}
 rule qdnaseq_segment:
-    input: rdata="qdnaseq/qdnaseq.RData"
-    output: segm="qdnaseq/cn_segm.tsv", calls="qdnaseq/cn_calls.tsv", rdata="qdnaseq/cn_seg.Rdata"
+    input: rdata="{kind}_qdnaseq/qdnaseq.RData"
+    output: segm="{kind}_qdnaseq/cn_segm.tsv", calls="{kind}_qdnaseq/cn_calls.tsv", rdata="{kind}_qdnaseq/cn_seg.Rdata"
     params: tool=BIN_DIR+"/qdnaseq_segmentation", cores=CORES
-    log: "qdnaseq/segm_call.log"
+    log: "{kind}_qdnaseq/segm_call.log"
     shell:
         """
             {params.tool} -r {input.rdata} -s {output.segm} -a {output.calls} -c {params.cores} -o {output.rdata} &> {log}
@@ -46,8 +26,8 @@ rule qdnaseq_segment:
 
 ## gistic online https://cloud.genepattern.org/gp/pages/index.jsf?lsid=urn:lsid:broad.mit.edu:cancer.software.genepattern.module.analysis:00125:6.15.28#
 rule segmentation_for_gistic:
-    input: rdata="qdnaseq/cn_seg.Rdata"
-    output: seg="ingistic.seg"
+    input: rdata="{kind}_qdnaseq/cn_seg.Rdata"
+    output: seg="{kind}_gistic.seg"
     params: tool=BIN_DIR+"/qdnaseq_my_segm"
     shell:
         """

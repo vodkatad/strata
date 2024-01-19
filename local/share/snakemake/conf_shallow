@@ -17,10 +17,8 @@ SRC_DIR=PRJ_ROOT+'/local/src'
 
 #egrassi@godot:/mnt/trcanmed/snaketree/prj/snakegatk/dataset/biobanca_shallowseq_pdo$ grep "-" all_aligned_dedup.tsv > passed_qc.tsv_test 
 #xeno is empty
-QC_X=SNAKE_ROOT+'/prj/snakegatk/dataset/biobanca_shallowseq_pdx/passed_qc.tsv'
-QC_O=SNAKE_ROOT+'/prj/snakegatk/dataset/biobanca_shallowseq_pdo/passed_qc.tsv'
-X_BAM=SNAKE_ROOT+'/prj/snakegatk/dataset/biobanca_shallowseq_pdx/align/markedDup_'
-O_BAM=SNAKE_ROOT+'/prj/snakegatk/dataset/biobanca_shallowseq_pdo/align/markedDup_'
+QC=SNAKE_ROOT+'/prj/snakegatk_real/dataset/strata_shallow/passed_qc.tsv'
+BAM=SNAKE_ROOT+'/prj/snakegatk_real/dataset/strata_shallow/align/markedDup_'
 
 def define_bam(qc, prefix):
     import os
@@ -43,16 +41,27 @@ def define_bam(qc, prefix):
     return(res)
 
 rule bamfiles:
-    params: x_bams=define_bam(QC_X, X_BAM), o_bams=define_bam(QC_O, O_BAM)
-    output: xeno="xeno_bamfiles_path.tsv", pdo="pdo_bamfiles_path.tsv"
+    params: bams=define_bam(QC, BAM)
+    output: bam="new_bamfiles_path.tsv"
     run:
-        with open(output.xeno, 'w') as o:
-            for b in params.x_bams:
-                print(b, file=o)
-        with open(output.pdo, 'w') as o:
-            for b in params.o_bams:
+        with open(output.bam, 'w') as o:
+            for b in params.bams:
                 print(b, file=o)
 
 # for qdnaseq
 BIN_SIZE=15
 CORES=8
+
+## put together whole 84 PDX with chemo data for the call (27+biobanca) mail DNA da recuperare per shallow sequencing, typo with 59 and not 54
+#egrassi@ulisse:/mnt/trcanmed/snaketree/prj/strata/dataset/shallow$ wc -l all_bamfiles_path.tsv
+#84 all_bamfiles_path.tsv
+BIOBANCA='/mnt/trcanmed/snaketree/prj/biobanca/dataset/V1/shallowseq/xeno_bamfiles_path.tsv'
+WANTED="../figures/mutHRandWES_resp_cases.tsv"
+rule all_bam:
+    input: bio=BIOBANCA, wanted=WANTED, new="new_bamfiles_path.tsv"
+    output: "all_bamfiles_path.tsv"
+    shell: 
+        """
+            grep -f <(cut -f 1 {input.wanted}) < {input.bio} > {output}
+            cat {input.new} >> {output}
+        """

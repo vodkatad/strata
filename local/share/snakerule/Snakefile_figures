@@ -33,6 +33,17 @@ rule convert_to_binary_gene_sample_mat:
     output: mat="binary_gene_mat.tsv"
     script: SRC_DIR+"/binarize_hr.R"
 
+rule convert_to_vaf_prot_table:
+    input: mut=HR_MUTS, annot=HR_MUTS_ANNOT, all_models="all_cases_hr.tsv", wanted="w3_waterfall.tsv"
+    params: thr=0.05
+    output: vaf="vaf_hr.tsv", prot="prot_hr.tsv"
+    script: SRC_DIR+"/table_vaf_prot.R"
+
+rule suppl_hr_vaf:
+    input: vaf="vaf_hr.tsv", prot="prot_hr.tsv"
+    output: "suppl_table_hr_vaf_prot.xlsx"
+    shell: "tsv_to_xls -i {input.vaf},{input.prot} -o {output} -s VAF,PROT"
+    
 # couple check vs old longformat:
 #egrassi@godot:/mnt/trcanmed/snaketree/prj/strata/dataset/figures$ grep -w MUS81 ../targeted_hr_our_july_2021/gene_annot_muts.tsv 
 #egrassi@godot:/mnt/trcanmed/snaketree/prj/strata/dataset/figures$ bawk '$2!=0{print $1,$2}' binary_gene_mat.tsv
@@ -67,6 +78,17 @@ rule hr_oncoprint_countdel:
     output: op="{week}_hr_oncoprintndel.eps", op_data="{week}_hr_oncoprintndel.Rdata", opwf="{week}_hr_oncoprintndelwf.eps", opmute="{week}_hr_oncoprintndelmute.eps", wilcox_genes="{week}_wilcoxHR.tsv"
     log: log="{week}_hr_oncoprintndel.pdf.log"
     script: SRC_DIR+"/oncoprint_ndel.R"
+
+rule hr_wilcoxon:
+    input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv"
+    output: wilcox_genes="{week}_wilcoxon_hr.tsv"
+    params: wanted=84
+    script: SRC_DIR+"/wilcoxon_hr.R"
+
+rule suppl_hr:
+    input: "{week}_wilcoxon_hr.tsv"
+    output: "{week}_wilcoxon_hr.xlsx"
+    shell: "tsv_to_xls -i {input} -o {output} -s Sheet1"
 
 # biobanca's data
 
@@ -158,3 +180,11 @@ rule hr_oncoprint_biobanca:
 
 ###
 # filter_1col 1 -v all_cases_hr.tsv  < w3_waterfall.tsv   | cut -f1  > missingHR_lookWES
+
+rule mut_resp:
+    input: w="w3_waterfall.tsv", mut="all_cases_hr.tsv"
+    output: "mutHRandWES_resp_cases.tsv"
+    shell: 
+        """
+           filter_1col 1 {input.mut} < {input.w} > {output} 
+        """
