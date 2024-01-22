@@ -33,3 +33,163 @@ rule segmentation_for_gistic:
         """
             {params.tool} -r {input.rdata} -s {output.seg}
         """
+
+rule gistic_segments:
+    input: "{kind}_qdnaseq/cn_segm.tsv"
+    output: "{kind}_gistic.segments"
+    shell: "cut -f 2,3,4 {input} > {output}"
+    
+
+rule logpc:
+    input: cn="{kind}_qdnaseq/cn_segm.tsv"
+    output: cn="{kind}_cn_segm.tsv.gz"
+    script: SRC_DIR+"/save_logpcplot.R" 
+
+
+# project to bin
+rule seqtobin:
+    input: "{kind}_qdnaseq/cn_segm.tsv"
+    output: "{kind}.{bin}.tsv.gz"
+    params: tool=BIN_DIR+"/project_bin_multi"
+    shell: 
+        """    
+            zcat {input} | head -n1 | bawk '{{print "chr","b","e",$0}}' > {output}.tmp || echo 'ciao'
+            {params.tool} -c <(zcat {input} | sed 1d |  tr ":" "\\t" | sed 's/-/\\t/1' | bawk '{{print "chr"$1,$2-1,$3,$0}}' | cut -f 4,5,6 --complement) -b {wildcards.bin} >> {output}.tmp
+            gzip -c {output}.tmp > {output}
+            rm {output}.tmp
+        """
+
+def heatmap_in(wildcards):
+    if wildcards.bin == "orig":
+        return wildcards.kind+'_cn_segm.tsv.gz'
+    else:
+        return wildcards.kind+'.'+wildcards.bin+'.tsv.gz'
+
+# enormous svg https://stackoverflow.com/questions/51418310/matplotlib-multiple-scatter-subplots-reduce-svg-file-size :(
+# stopped at 900M for orig, 50Mb for 1500000 bins
+W = {'all': 84, 'new': 27}
+rule heatmap:
+    #input: "{kind}_segm_l2fc.tsv.gz"
+    #input: "{kind}.1500000.tsv.gz"
+    input: heatmap_in, "../figures/w3_waterfall.tsv"
+    output: "{kind}_{bin}_heatmap_{mute}.pdf"
+    params: w=lambda wildcards: W[wildcards.kind]
+    run:
+        import numpy as np
+        import pandas as pd
+        import seaborn as sns
+        import matplotlib.colors as colors
+        import matplotlib 
+        import matplotlib.cm as cm
+        import matplotlib.ticker as ticker
+        import matplotlib.pyplot as plt
+        import matplotlib.colors as colors
+        import matplotlib.transforms as transforms
+
+        cnvs = pd.read_csv(input[0], sep="\t") 
+        
+        if wildcards.bin == 'orig':
+            split1 = [x.split(':') for x in cnvs.index]
+            split2 = [x[1].split('-') for x in split1]
+            boundaries = pd.DataFrame(data={'chr':[x[0] for x in split1], 'b': [x[0] for x in split2], 'e': [x[1] for x in split2]})
+            #cnvs = cnvs.drop(columns=['feature', 'chromosome', 'start', 'end']).transpose()
+            cnvs = cnvs.transpose()
+        else:
+            boundaries = cnvs[['chr','b','e']].copy()
+            cnvs = cnvs.drop(columns=['chr','b','e']).transpose()
+
+        # order samples by w3 response
+        w3  = pd.read_csv('../figures/w3_waterfall.tsv', sep="\t", header=None, index_col=0)
+        cnvs.index = cnvs.index.str[0:7]
+        com = w3.index.intersection(cnvs.index)
+        if (len(com) != params.w):
+            raise Exception("Sorry, you do not have 84 winners")
+        w3 = w3[w3.index.isin(com)] # manually checked that it maintains order
+        cnvs = cnvs.reindex(w3.index)
+        if (cnvs.shape[0] != params.w):
+            raise Exception("Sorry, you do not have 84 winners - bis")
+        #chr_limits = boundaries.index[boundaries['e'].isin(boundaries.groupby('chr', sort=False)['e'].max().values)].tolist()
+        i = 0
+        chr_limits = []
+        last = ""
+        for index, row in boundaries.iterrows():
+            if last != "" and last != row['chr']:
+                chr_limits.append(i-1)
+            last = row['chr']
+            i = i + 1        
+        chr_limits.append(i-1)
+
+        chr_boundaries = np.append(0, chr_limits)
+        chr_list = boundaries['chr'].unique().tolist()
+        chrN_list = []
+
+        for x in chr_list:
+            if wildcards.bin != "orig":
+                x = x[3:] #remove 'chr' for readability
+            chrN_list.append(x)
+
+        #compute the position where chromosome labels will be placed on the plots
+        start = 0
+        pos_list = []
+        for end in chr_limits:
+            pos_list.append((start+end)/2)
+            start = end+1
+
+        yticklabels = False
+
+        #cbar_kws={"ticks": np.arange(0,13,1)}
+        maxv = cnvs.max().max()
+        minv = cnvs.min().min()
+        h = sns.clustermap(cnvs, col_cluster=False, row_cluster=False, yticklabels = False, cmap='RdBu_r', robust=True, center=0, rasterized=True)# cbar_kws=cbar_kws)
+        #h = sns.clustermap(cnvs, col_cluster=False, row_cluster=False, yticklabels = False, cmap='RdBu_r', robust=True, center=0)# cbar_kws=cbar_kws)
+        #h = sns.clustermap(cnvs, col_cluster=False, row_cluster=False, yticklabels = False, cmap='bwr', vmax=maxv, vmin=minv, center=0)# cbar_kws=cbar_kws)
+        #h = sns.clustermap(cnvs, col_cluster=False, row_cluster=False, yticklabels = False, cmap='coolwarm', robust=True, center=0)# cbar_kws=cbar_kws)
+        #Z = h.dendrogram_row.linkage
+        ax = h.ax_heatmap
+		#ax.set_rasterization_zordeset_rasterization_zorderr(1)
+        #place vertical lines to identify chromosomes
+        for pos in chr_limits:
+            ax.axvline(x=pos, color='black', linewidth=0.3)
+
+        #place chromosome ticks at the right position
+        ax.xaxis.set_major_locator(ticker.FixedLocator((pos_list)))
+        if wildcards.mute != "mute":
+            ax.xaxis.set_major_formatter(ticker.FixedFormatter((chrN_list)))
+        #ax.tick_params(axis='x', rotation=0, labelsize=5)
+        ax.tick_params(axis='x', rotation=0, labelsize=5)
+        ax.xaxis.set_minor_locator(ticker.FixedLocator(chr_boundaries))
+        ax.tick_params(axis='x', length=8, which='minor')
+        
+        # legend is not a leged but a ax_cbar
+        cax = plt.gcf().axes[-1]
+        cax.tick_params(labelsize=3) # nope
+
+        #ax.set_xlabel("Chromosomes", fontweight='bold', fontsize=25)
+        # A4 is 8-1/4 x 11-3/4 in
+        plt.gcf().set_size_inches(7, 3.8) # w, h
+        # cannot find a way to get tolerable linewidth cause linewidth parameter seem to be ignored, will
+        # scale by hand
+        #plt.gcf().set_size_inches(37, 21)
+        plt.savefig(output[0], dpi=300)
+        plt.clf()
+
+
+# map all_qdnaseq/cn_calls.tsv to genes, subset to hr genes then stats/heatmap
+rule gencode_almost_bed:
+    input: GENCODE
+    output: "gencode_genes.abed"
+    shell:
+        """
+            zcat {input} | grep -v "^#" | bawk '$3=="gene"{{print $1,$4-1,$5,$9}}' | perl -F"\\t" -ane 'chomp $F[3]; my $info = $F[3]; my $gs=""; my $annot=""; 
+            if ($info =~ /gene_name "([-\w]+)"/) {{$gs=$1;}} 
+            if ($info =~ /gene_type "([\w_]+)"/) {{$annot=$1;}} 
+            print "$F[0]\\t$F[1]\\t$F[2]\\t$gs\\t$annot\\n";' > {output}
+        """
+
+rule gencode_bed_type:
+    input: "gencode_genes.abed"
+    output: "gencode_type_{t}.bed"
+    shell:
+        """
+            bawk '$4!="" && $5=="{wildcards.t}" {{print $1,$2,$3,$4}}' {input} > {output}
+        """
