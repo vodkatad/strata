@@ -193,3 +193,33 @@ rule gencode_bed_type:
         """
             bawk '$4!="" && $5=="{wildcards.t}" {{print $1,$2,$3,$4}}' {input} > {output}
         """
+
+# gistic HR genes
+rule gistic_HR_genes_calls:
+    input: allg=PRJ_ROOT+"/local/share/data/gistic/all/558381/all_thresholded.by_genes.txt", hr=PRJ_ROOT+"/local/share/data/hr_all.txt"
+    output: "gistic_thr_genes_HR.tsv"
+    shell: 
+        """
+            echo 'Gene Symbol' > {output}.tmp
+            cat {input.hr} | cut -f 3 >> {output}.tmp
+            cut -f2,3 --complement {input.allg} | filter_1col 1 {output}.tmp > {output}
+            rm {output}.tmp
+        """
+
+rule HR_cn_oncoprint_gistic:
+    input: mutmat="gistic_thr_genes_HR.tsv", wf="../figures/{week}_waterfall.tsv"
+    output: op="{week}_hr_oncoprint.pdf", op_data="{week}_hr_oncoprint.Rdata", opwf="{week}_hr_oncoprintwf.pdf", opmute="{week}_hr_oncoprintmute.pdf"
+    script: SRC_DIR+"/oncoprint_cn.R"
+
+# CGHall
+rule HRcoords:
+    input: coords="gencode_type_protein_coding.bed", hr=PRJ_ROOT+"/local/share/data/hr_all.txt"
+#filter_1col 4 <(cat /mnt/trcanmed/snaketree/prj/strata/local/share/data/hr_all.txt|cut -f3 ) < gencode_type_protein_coding.bed  | wc -l
+#44
+rule CGHall_genes_calls:
+    input: allg="all_qdnaseq/cn_calls.tsv", coords="gencode_type_protein_coding.bed"
+    output: "gistic_thr_genes_HR.tsv"
+    shell:
+        """
+            need to write some overlapping code to keep the most common call for a gene (& some stats?)
+        """

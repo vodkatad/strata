@@ -66,4 +66,5 @@ rule all_bam:
             cat {input.new} >> {output}
         """
 
-GENCODE="/mnt/bioionfotree/task/gencode/dataset/hsapiens/27/primary_assembly.annotation.gtf.gz" 
+#GENCODE="/mnt/bioionfotree/task/gencode/dataset/hsapiens/27/primary_assembly.annotation.gtf.gz" 
+GENCODE="/mnt/trcanmed/temp/primary_assembly.annotation.gtf.gz" 
