@@ -8,7 +8,6 @@ op_data_f <- snakemake@output[['op_data']]
 binary_f <- snakemake@input[['mutmat']]
 wf_f <- snakemake@input[['wf']]
 
-save.image('pippo.Rdata')
 mut <- t(read.table(binary_f, sep="\t", header=TRUE, row.names=1))
 rownames(mut) <- substr(rownames(mut), 0, 7)
 wf <- read.table(wf_f, sep="\t", stringsAsFactors = FALSE)

@@ -188,3 +188,10 @@ rule mut_resp:
         """
            filter_1col 1 {input.mut} < {input.w} > {output} 
         """
+
+###
+rule hr_oncoprint_countdel_cngistic:
+    input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv", all_genes=DATA_DIR+"/targeted_homologous.tsv", cnmat="../shallow/gistic_thr_genes_HR.tsv"
+    output: op="{week}_hr_oncoprintndel_cn.eps", op_data="{week}_hr_oncoprintndel_cn.Rdata", opwf="{week}_hr_oncoprintndelwf_cn.eps", opmute="{week}_hr_oncoprintndelmute_cn.eps"
+    log: log="{week}_hr_oncoprintndel_cn.pdf.log"
+    script: SRC_DIR+"/oncoprint_ndel_gistic.R"
