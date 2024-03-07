@@ -80,9 +80,9 @@ stopifnot(unique(mat[cn!="WT"])=="background")
 mat[cn=="Gain"] <- "Amplification" # https://docs.cbioportal.org/user-guide/faq/#what-do-amplification-gain-deep-deletion-shallow-deletion-and--2--1-0-1-and-2-mean-in-the-copy-number-data
 mat[cn=="HomDel"] <- "HomDel"
 
-#pal=brewer.pal(9,'YlOrRd')[seq(3,9)]
-pal <- rev(hcl.colors(7, palette = "Sunset"))
-col = c("Del0"= pal[1], "Del1"= pal[2], "Del2"= pal[3], "Del3"= pal[4], "Del4"= pal[5], "Del5"=pal[6], 'Amplification'='red', 'HomDel'='blue')
+pal=brewer.pal(9,'YlOrRd')[seq(3,9)]
+#pal <- rev(hcl.colors(7, palette = "Sunset"))
+col = c("Del0"= pal[1], "Del1"= pal[2], "Del2"= pal[3], "Del3"= pal[4], "Del4"= pal[5], "Del5"=pal[6], 'Amplification'='mediumorchid1', 'HomDel'='aquamarine')
 
 alter_fun = list(
   background = function(x, y, w, h) {
@@ -90,27 +90,27 @@ alter_fun = list(
               gp = gpar(fill = "#CCCCCC", col = NA))
   },
   Del0 = function(x, y, w, h) {
-    grid.rect(x, y, w*0.5, h*0.5, 
+    grid.rect(x, y, w*0.5, h*1, 
               gp = gpar(fill = col["Del0"], col = NA))
   },
   Del1 = function(x, y, w, h) {
-    grid.rect(x, y, w*0.5, h*0.5, 
+    grid.rect(x, y, w*0.5, h*1, 
               gp = gpar(fill = col["Del1"], col = NA))
   },
   Del2 = function(x, y, w, h) {
-    grid.rect(x, y, w*0.5, h*0.5, 
+    grid.rect(x, y, w*0.5, h*1, 
               gp = gpar(fill = col["Del2"], col = NA))
   },
   Del3 = function(x, y, w, h) {
-    grid.rect(x, y, w*0.5, h*0.5, 
+    grid.rect(x, y, w*0.5, h*1, 
               gp = gpar(fill = col["Del3"], col = NA))
   },
   Del4 = function(x, y, w, h) {
-    grid.rect(x, y, w*0.5, h*0.5, 
+    grid.rect(x, y, w*0.5, h*1, 
               gp = gpar(fill = col["Del4"], col = NA))
   },  
   Del5 = function(x, y, w, h) {
-    grid.rect(x, y, w*0.5, h*0.5, 
+    grid.rect(x, y, w*0.5, h*1, 
               gp = gpar(fill = col["Del5"], col = NA))
   },
   Amplification = function(x, y, w, h) {

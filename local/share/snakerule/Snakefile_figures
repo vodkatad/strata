@@ -1,3 +1,4 @@
+
 SRC_DIR="../../local/src"
 DATA_DIR="../../local/share/data"
 #HR_MUTS=DATA_DIR+"/new_gatk/merged.table_nomultiallele_CRC00578"
@@ -57,7 +58,7 @@ rule wf_chemio:
         """
            cut -f 1,2 {input} | grep -v CASE | sort -gk2,2 -r > {output.w3}  
            bawk '$3!=""{{print $1,$3}}' {input} | grep -v CASE| sort -gk2,2 -r > {output.w6}  
-        """
+-        """
 
 rule hr_oncoprint:
     input: mutmat="binary_gene_mat.tsv", wf="{week}_waterfall.tsv"
@@ -131,7 +132,6 @@ rule plot_depmap_irino_FBX:
     log: log="correlazione_irino_fbx.log"
     script: SRC_DIR+"/depmap_scatter_FBXO18_Irinotecan.R"
 
-## comet
 rule comet_assembly:
     input: DATA_DIR+'/comet/comet_CRC0096unq.tsv', DATA_DIR+'/comet/comet_CRC0196.tsv', DATA_DIR+'/comet/comet_CRC0729.tsv', DATA_DIR+'/comet/comet_first_july2023.tsv'
     output: "comet.tsv"
@@ -147,26 +147,31 @@ rule comet_plot:
     log: log="comet.log"
     script: SRC_DIR+'/comet.R'
 
+rule comet_plot_welch:
+    input: comet="comet.tsv"
+    output: boxplot="comet_w.eps"
+    log: log="comet_w.log"
+    script: SRC_DIR+'/comet_welch.R'
 
 rule chisq_torte_rad:
-    input: n=DATA_DIR+"/{n}classes.txt"
+    input: n=DATA_DIR+"/{n}classes_2.txt"
     output: stat="torte_{n}_RAD_chisq.txt"
     script: SRC_DIR+"/torte_chisq.R"
 
 rule km_rad:
-    input: surviv=DATA_DIR+"/rad51_km.txt"
+    input: surviv=DATA_DIR+"/rad51_km_2.txt"
     output: plot="rad51.svg"
     log: log="rad51_km.log"
     script: SRC_DIR+"/RAD_km.R"
 
 rule km_rad_0_3:
-    input: surviv=DATA_DIR+"/rad51_km.txt"
+    input: surviv=DATA_DIR+"/rad51_km_2.txt"
     output: plot="rad51_03.svg"
     log: log="rad51_km_03.log"
     script: SRC_DIR+"/RAD_km_03.R"
 
 rule km_rad_01_23:
-    input: surviv=DATA_DIR+"/rad51_km.txt"
+    input: surviv=DATA_DIR+"/rad51_km_2.txt"
     output: plot="rad51_01_23.svg"
     log: log="rad51_km_01_23.log"
     script: SRC_DIR+"/RAD_km_01_23.R"
@@ -176,6 +181,13 @@ rule hr_oncoprint_biobanca:
     input: mutmat="/scratch/trcanmed/DE_RNASeq/dataset/chemio_jul23/mutmat_bin_all_top10.tsv", wf="{week}_waterfall.tsv"
     output: op="{week}_oncoprint_top10biobanca.eps", op_data="{week}_oncoprint_top10biobanca.Rdata", opwf="{week}_oncoprintwf_top10biobanca.eps", opmute="{week}_oncoprintmute_top10biobanca.eps", wilcox_genes="{week}_wilcox_top10biobanca.tsv"
     script: SRC_DIR+"/oncoprint_biobanca_chemiojul23.R"
+
+
+rule top10_fisher:
+    input: mutmat="/scratch/trcanmed/DE_RNASeq/dataset/chemio_jul23/mutmat_bin_all_top10.tsv", wf="{week}_waterfall.tsv"
+    output: wilcox_genes="{week}_fisher_top10.tsv"
+    params: wanted=86
+    script: SRC_DIR+"/fisher_hr.R"
 
 
 ###

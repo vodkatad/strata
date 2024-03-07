@@ -55,6 +55,9 @@ print('Tot models:')
 print(tot_models)
 print('frac:')
 print(sum(nn)/tot_models)
+print("added genes w/o muts and total genes")
+print(length(to_add))
+print(nrow(genes))
 sink()
 
 pal=brewer.pal(9,'YlOrRd')[seq(3,9)]
