@@ -8,7 +8,8 @@ d <- read.table(data_f, sep='\t', header=T, row.names=1)
 
 sink(stat_f)
 chisq.test(d, simulate.p.value = TRUE)
-
+print('fisher')
+fisher.test(d)
 #chisq.test(d, simulate.p.value = FALSE)
-
+print(d)
 sink()
