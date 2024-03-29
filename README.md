@@ -1,4 +1,4 @@
-# An atypical BRCAness phenotype dictates response to chemotherapy in metastatic colorectal cancer
+# A BRCAness phenotype without genetic or epigenetic inactivation of homologous recombination genes dictates response to chemotherapy in metastatic colorectal cancer
 
 Snakemake pipeline to reproduce bioinformatics main figures panels.
 
