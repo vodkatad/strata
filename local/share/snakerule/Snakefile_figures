@@ -50,7 +50,8 @@ rule suppl_hr_vaf:
 #egrassi@godot:/mnt/trcanmed/snaketree/prj/strata/dataset/figures$ bawk '$2!=0{print $1,$2}' binary_gene_mat.tsv
 #+ATR
 
-# we need files with CRC models to retain only good models ordered like waterfall3/waterfall6: ./wf_chemio_3_6.txt temporary from MarcoA's mail waterfall chemio 11/07/23
+# we need files with CRC models to retain only good models ordered like waterfall3/waterfall6: ./wf_chemio_3_6.txt was a temporary one from MarcoA's mail waterfall chemio 11/07/23, now w
+# use the definitive one.
 rule wf_chemio:
     input: DATA_DIR+"/wf_chemio_3_6_def.txt"
     output: w6="w6_waterfall.tsv",w3="w3_waterfall.tsv"
@@ -176,15 +177,16 @@ rule km_rad_01_23:
     log: log="rad51_km_01_23.log"
     script: SRC_DIR+"/RAD_km_01_23.R"
 
-## oncoprint top 10 biobanca 
+## oncoprint top 10 biobanca
+MUTMAT_TOP10=DATA_DIR+"/mutmat_bin_all_top10.tsv"
 rule hr_oncoprint_biobanca:
-    input: mutmat="/scratch/trcanmed/DE_RNASeq/dataset/chemio_jul23/mutmat_bin_all_top10.tsv", wf="{week}_waterfall.tsv"
+    input: mutmat=MUTMAT_TOP10, wf="{week}_waterfall.tsv"
     output: op="{week}_oncoprint_top10biobanca.eps", op_data="{week}_oncoprint_top10biobanca.Rdata", opwf="{week}_oncoprintwf_top10biobanca.eps", opmute="{week}_oncoprintmute_top10biobanca.eps", wilcox_genes="{week}_wilcox_top10biobanca.tsv"
     script: SRC_DIR+"/oncoprint_biobanca_chemiojul23.R"
 
 
 rule top10_fisher:
-    input: mutmat="/scratch/trcanmed/DE_RNASeq/dataset/chemio_jul23/mutmat_bin_all_top10.tsv", wf="{week}_waterfall.tsv"
+    input: mutmat=MUTMAT_TOP10, wf="{week}_waterfall.tsv"
     output: wilcox_genes="{week}_fisher_top10.tsv"
     params: wanted=86
     script: SRC_DIR+"/fisher_hr.R"
