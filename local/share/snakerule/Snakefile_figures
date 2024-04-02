@@ -67,13 +67,20 @@ rule hr_oncoprint:
     script: SRC_DIR+"/oncoprint_binary.R"
 
 # colored oncoprint for hr
-# add bi-allelic counts TODO
 rule convert_to_ndel_gene_sample_mat:
     input: mut=HR_MUTS, annot=HR_MUTS_ANNOT, all_models="all_cases_hr.tsv", wf_models='w3_waterfall.tsv'
     params: thr=0.05
     output: mat="nDel_gene_mat.tsv"
     log: log="nDel_gene_mat.tsv.log"
     script: SRC_DIR+"/ndel_hr.R"
+
+# get nDel_gene_mat.tsv, sort models and genes as in vaf_hr.tsv, 0.5 becomes 0 - new sheet for suppl table 2
+# ndel_hr_sort_split.R TODO
+rule suppl_ndel_comma:
+    input: mut=HR_MUTS, annot=HR_MUTS_ANNOT, all_models="all_cases_hr.tsv", wf_models='w3_waterfall.tsv', sort="vaf_hr.tsv"
+    params: thr=0.05
+    output: mat="nDel_gene_mat.tsv"
+    script: SRC_DIR+"/ndel_hr_sort_split.R"
 
 rule hr_oncoprint_countdel:
     input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv", all_genes=DATA_DIR+"/targeted_homologous.tsv"
@@ -209,3 +216,25 @@ rule hr_oncoprint_countdel_cngistic:
     output: op="{week}_hr_oncoprintndel_cn.eps", op_data="{week}_hr_oncoprintndel_cn.Rdata", opwf="{week}_hr_oncoprintndelwf_cn.eps", opmute="{week}_hr_oncoprintndelmute_cn.eps"
     log: log="{week}_hr_oncoprintndel_cn.pdf.log"
     script: SRC_DIR+"/oncoprint_ndel_gistic.R"
+
+rule de_geni_scelti:
+    input: "../../local/share/data/dds.Rdata"
+    output: tsv="{what}_cutoff{alpha}-{nom}.vs.{den}.deseq2_geni_scelti.tsv", volcano="{what}_cutoff{alpha}-{nom}.vs.{den}.deseq2_geni_scelti.svg"
+    params: threads=6, alpha="0.05", factor="type", nom="non_responder_3Q", den="responder_1Q", lfc=0.5849625
+    script: SRC_DIR+"/deseq2_diff_volcano_geni_scelti_chemiojul23.R"
+
+rule plot_enrich:
+    input:  imagine="../../local/share/data/totale_GSEA.Rdata", data="../../local/share/data/risultati_gsea_totali.tsv"
+    output: blus="blu_chemiojul23_scritte.jpeg",
+            giallos="gialli_chemiojul23_scritte.jpeg",
+            grigios="grigio_chemiojul23_scritte.pdf",
+            verdisp="verdi_positive_chemiojul23_scritte.jpeg",
+            verdisn="verdi_negative_chemiojul23_scritte.jpeg",
+            tsv="statistical_info_plot_enrich.tsv"
+    script: SRC_DIR+"/enrich_plot_chemio_all_sign.R"
+
+rule cor_degs_gsea_3w_selected_data:
+    input: deg_3="../../local/share/data/type_cutoff0.05-non_responder_3Q.vs.responder_1Q.deseq2.tsv", deg_select="../../local/share/data/type_cutoff0.05-resistant.vs.sensitive.deseq2.tsv"
+    output: png="plot_correlazione_deg_3w_selected_data.png"
+    log: log="correlazioni_gsea_deg_3w_selected_data.log"
+    script: SRC_DIR+"/confronto_deg_chemiojul23_3w_magnifici29.R"
