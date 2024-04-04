@@ -2,9 +2,11 @@ muts_f <- snakemake@input[['mut']]
 annot_f <- snakemake@input[['annot']]
 models_f <- snakemake@input[['all_models']]
 wf_f <- snakemake@input[['wf_models']]
+sort_f <- snakemake@input[['sort']]
 outfile <- snakemake@output[['mat']]
 thr <- as.numeric(snakemake@params[['thr']])
-log_f <- snakemake@log[['log']]
+
+sortdf <- read.table(sort_f, sep="\t", header=TRUE, stringsAsFactors = FALSE)
 
 mdata <- read.table(muts_f, sep="\t" , header=TRUE)
 anndata <- read.table(annot_f, sep="\t" , header=TRUE, stringsAsFactors = FALSE)
@@ -43,6 +45,7 @@ count_letter <- function(x, letter='D') {
 }
 
 # if one sample has two muts on the same gene we keep the worst one (more Deleterious predicion)
+# -> no here we keep both with a , in between
 search_gene_muts_nDel <- function(gene, muts, annot) {
    genemuts <- annot[annot$Gene.refGene == gene,]
    genemuts <- genemuts[genemuts$ExonicFunc.refGene != 'synonymous SNV',]
@@ -55,16 +58,16 @@ search_gene_muts_nDel <- function(gene, muts, annot) {
          for (j in seq(1, ncol(genedata))) {
             if (genedata[i,j] >= 1) {
                res[i,j] <- ndel[rownames(ndel)==rownames(genedata)[i], 'n']
-               if (res[i,j]==0) {
-                  res[i,j] = 0.5 # we want to keep muts with 0 deleterious prediction anyway
-               }
+            } else {
+               res[i,j] <- ''
             }
          }
       }
-      return(apply(res, 2, max))
+      mypaste <- function(x) { x <- x[x!=""]; paste(x, collapse=",")}
+      return(apply(res, 2, mypaste))
    } else {
      print(gene)
-     return(rep(0, ncol(muts)))
+     return(rep('', ncol(muts)))
    }
 }
 
@@ -75,31 +78,7 @@ if (length(toadd) > 0) {
   stop('TODO implement add samples without any mut!')
 }
 
+ndeldf <- ndeldf[rownames(sortdf), colnames(sortdf)]
+
 write.table(ndeldf, outfile, sep= "\t", quote=FALSE)
 save.image('pippo.Rdata')
-
-tot <- length(logdata[logdata!=0])
-monoallelic <- length(logdata[logdata!=0 & logdata<=0.99])
-biallelic <- length(logdata[logdata>0.99])
-
-# access annotations of muts mutated in at least one sample
-tot_mut <- rownames(logdata)[apply(logdata, 1, function(x){any(x!=0)})]
-log_ann <- anndata[rownames(anndata) %in% tot_mut,]
-ndel <- as.data.frame(apply(log_ann[, wanted_predictions], 1, count_letter))
-colnames(ndel) <- 'n'
-ndel_n <- sum(ndel$n >= 3)
-sink(log_f)
-print('tot muts counting double same mut in two samples')
-print(tot)
-print('monoallelic mut')
-print(monoallelic)
-print((monoallelic/tot)*100)
-print('biallelic mut')
-print(biallelic)
-print((biallelic/tot)*100)
-print('tot muts "normal"')
-print(length(tot_mut))
-print('tot muts with >= 3/5 d')
-print(ndel_n)
-print((ndel_n/length(tot_mut))*100)
-sink()

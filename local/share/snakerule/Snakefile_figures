@@ -79,8 +79,14 @@ rule convert_to_ndel_gene_sample_mat:
 rule suppl_ndel_comma:
     input: mut=HR_MUTS, annot=HR_MUTS_ANNOT, all_models="all_cases_hr.tsv", wf_models='w3_waterfall.tsv', sort="vaf_hr.tsv"
     params: thr=0.05
-    output: mat="nDel_gene_mat.tsv"
+    output: mat="nDel_gene_mat_sorted_commajoined.tsv"
     script: SRC_DIR+"/ndel_hr_sort_split.R"
+
+rule suppl_ndel:
+    input: mat="nDel_gene_mat_sorted_commajoined.tsv"
+    output: "suppl_table_hr_ndel.xlsx"
+    shell: "tsv_to_xls -i {input.mat} -o {output} -s nDEL"
+    
 
 rule hr_oncoprint_countdel:
     input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv", all_genes=DATA_DIR+"/targeted_homologous.tsv"
