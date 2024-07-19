@@ -244,3 +244,47 @@ rule cor_degs_gsea_3w_selected_data:
     output: png="plot_correlazione_deg_3w_selected_data.png"
     log: log="correlazioni_gsea_deg_3w_selected_data.log"
     script: SRC_DIR+"/confronto_deg_chemiojul23_3w_magnifici29.R"
+
+
+###  POLD1 RAD51 H2AX average scores and inductions
+# removed CRLF egrassi@godot:/mnt/trcanmed/snaketree/prj/strata/local/share/data/IHC_Fra$ for f in CRLF/*; do tr -d '\r' < $f > $(basename "$f" .txt)  ; done
+# XXX ask Fra and look at prism, why the empty positions?
+rule average:
+    input: DATA_DIR+"/IHC_Fra/{marker}_{treat}_{class}"
+    output: "avg_{marker}_{treat}_{class}.tsv"
+    shell:
+        """
+            Rscript -e "d <- read.table('{input}', sep='\\t', row.names=1, skip=1); {wildcards.marker}_{wildcards.treat} <- rowMeans(d, na.rm=T); write.table(as.data.frame({wildcards.marker}_{wildcards.treat}), '{output}', sep='\\t', quote=FALSE)"
+        """
+
+rule merge_sens_res:
+    input: s="avg_{marker}_{treat}_sens.tsv", r="avg_{marker}_{treat}_res.tsv"
+    output: "avgall_{marker}_{treat}.tsv"
+    shell: 
+        """ 
+            head -n1 {input.s} > {output}
+            cat {input} | grep CRC >> {output}
+        """
+
+rule all_avg:  
+    input: expand("avgall_{marker}_{treat}.tsv", marker=['H2AX', 'POLD1', 'RAD51'], treat=['NT','irino'])
+
+rule average_notreat:
+    input: DATA_DIR+"/IHC_Fra/{marker}_{class}"
+    output: "avg_{marker}_{class}.tsv"
+    shell:
+        """
+            Rscript -e "d <- read.table('{input}', sep='\\t', row.names=1, skip=1); {wildcards.marker} <- rowMeans(d, na.rm=T); write.table(as.data.frame({wildcards.marker}), '{output}', sep='\\t', quote=FALSE)"
+        """
+    
+rule merge_sens_res_notreat:
+    input: s="avg_{marker}_sens.tsv", r="avg_{marker}_res.tsv"
+    output: "avgall_{marker}.tsv"
+    shell: 
+        """ 
+            head -n1 {input.s} > {output}
+            cat {input} | grep CRC >> {output}
+        """
+
+rule all_avg_notreat:  
+    input: expand("avgall_POLD1.tsv")
