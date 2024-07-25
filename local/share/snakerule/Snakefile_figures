@@ -266,6 +266,9 @@ rule merge_sens_res:
             cat {input} | grep CRC >> {output}
         """
 
+ruleorder: average > average_notreat
+ruleorder: merge_sens_res > merge_sens_res_notreat
+
 rule all_avg:  
     input: expand("avgall_{marker}_{treat}.tsv", marker=['H2AX', 'POLD1', 'RAD51'], treat=['NT','irino'])
 
