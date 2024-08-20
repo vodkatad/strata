@@ -1,0 +1,38 @@
+DATA="../../local/share/data"
+DATASET=DATA+"/external_datasets"
+DELRIO=DATASET+"/delrio"
+SRC_DIR="../../local/src"
+BIN_DIR="../../local/bin"
+
+rule manipulation:
+    input: one=DELRIO+"GSE72970_series_matrix.txt.gz", two=DELRIO+"GSE62080_series_matrix.txt.gz"
+    output: one="GSE72970_delrio_exprdata.tsv.gz", two="GSE62080_delrio_exprdata.tsv.gz"
+    shell:
+        """
+            zcat {input.one}| grep -v '^!' | sed 1d | tr -d '"' | gzip -c > {output.one}
+            zcat {input.two} | grep -v '^!' | sed 1d | tr -d '"' | gzip -c > {output.two}
+        """
+
+rule tosymbol:
+    input: one="GSE72970_delrio_exprdata.tsv.gz", two="GSE62080_delrio_exprdata.tsv.gz"
+    output: symbol="both_delrio_exprdata_symbol.tsv.gz", mean="both_delrio_exprdata_symbol_genemean.tsv.gz"
+    script: SRC_DIR+"/delrio_expr_manipulation.R"
+
+rule changename:
+    input: resp=DELRIO+"/delrio_folfiri_response.tsv", dic=DELRIO+"/samples_dictionary"
+    output: "delrio_folfiri_response_GSMname.tsv"
+    shell:
+        """
+            cat {input.resp} | translate -a -v -n {input.dic} 1 > {output}
+        """
+
+rule limma:
+	input: m="both_delrio_exprdata_symbol_genemean.tsv.gz", info="delrio_folfiri_response_GSMname.tsv"
+	params: tool=BIN_DIR+"/limma_review", alpha=0.05, lfc=0.585
+	output: table="{what}/limma_{column}_{contrast}_{batch}_{what}.tsv", summ="{what}/limma_{column}_{contrast}_{batch}_{what}_summary.tsv", volcano="{what}/limma_{column}_{contrast}_{batch}_{what}_volcano.pdf", image="{what}/limma_{column}_{contrast}_{batch}_{what}.RData"
+	shell:
+		"""
+            {params.tool} -m {input.m} -i {input.info} -f "~ {wildcards.column}" -c {wildcards.contrast} -b {wildcards.batch} -o {output.table} -s {output.summ} -v {output.volcano} -a {params.alpha} -l {params.lfc} -w {wildcards.what} -r {output.image}
+		"""
+
+
