@@ -37,6 +37,7 @@ print(formula)
 
 mvalues <- read.table(gzfile(opt$mvalues_in), sep='\t', quote="", row.names=1, header=TRUE)
 print("expression file read")
+# mvalues = log2(mvalues+0.1) 
 # names(mvalues) <- gsub(".", "-", names(mvalues), fixed=TRUE)
 info <- read.table(opt$info_in, sep='\t', quote="", row.names=2, header=TRUE)
 mvalues <- mvalues[,rownames(info)]

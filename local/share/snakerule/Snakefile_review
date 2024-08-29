@@ -1,5 +1,5 @@
 DATA="../../local/share/data"
-DATASET=DATA+"/external_datasets"
+DATASET=DATA+"/review"
 DELRIO=DATASET+"/delrio"
 SRC_DIR="../../local/src"
 BIN_DIR="../../local/bin"
@@ -9,7 +9,7 @@ rule manipulation:
     output: one="GSE72970_delrio_exprdata.tsv.gz", two="GSE62080_delrio_exprdata.tsv.gz"
     shell:
         """
-            zcat {input.one}| grep -v '^!' | sed 1d | tr -d '"' | gzip -c > {output.one}
+            zcat {input.one} | grep -v '^!' | sed 1d | tr -d '"' | gzip -c > {output.one}
             zcat {input.two} | grep -v '^!' | sed 1d | tr -d '"' | gzip -c > {output.two}
         """
 
@@ -20,19 +20,40 @@ rule tosymbol:
 
 rule changename:
     input: resp=DELRIO+"/delrio_folfiri_response.tsv", dic=DELRIO+"/samples_dictionary"
-    output: "delrio_folfiri_response_GSMname.tsv"
+    output: "delrio_folfiri_response_GSMname_SD.tsv"
     shell:
         """
             cat {input.resp} | translate -a -v -n {input.dic} 1 > {output}
         """
 
+rule noSD:
+    input: "delrio_folfiri_response_GSMname.tsv"
+    output: "delrio_folfiri_response_GSMname_noSD.tsv"
+    shell:
+        """
+            cat {input} | bawk '$4!="SD"' > {output}
+        """
+
 rule limma:
-	input: m="both_delrio_exprdata_symbol_genemean.tsv.gz", info="delrio_folfiri_response_GSMname.tsv"
+	input: m="both_delrio_exprdata_symbol_genemean.tsv.gz", info="delrio_folfiri_response_GSMname_{sd}.tsv"
 	params: tool=BIN_DIR+"/limma_review", alpha=0.05, lfc=0.585
-	output: table="{what}/limma_{column}_{contrast}_{batch}_{what}.tsv", summ="{what}/limma_{column}_{contrast}_{batch}_{what}_summary.tsv", volcano="{what}/limma_{column}_{contrast}_{batch}_{what}_volcano.pdf", image="{what}/limma_{column}_{contrast}_{batch}_{what}.RData"
+	output: table="{what}/limma_{column}_{contrast}_{batch}_{sd}.tsv", summ="{what}/limma_{column}_{contrast}_{batch}_summary_{sd}.tsv", volcano="{what}/limma_{column}_{contrast}_{batch}_volcano_{sd}.pdf", image="{what}/limma_{column}_{contrast}_{batch}_{sd}.RData"
 	shell:
 		"""
             {params.tool} -m {input.m} -i {input.info} -f "~ {wildcards.column}" -c {wildcards.contrast} -b {wildcards.batch} -o {output.table} -s {output.summ} -v {output.volcano} -a {params.alpha} -l {params.lfc} -w {wildcards.what} -r {output.image}
 		"""
+
+rule confronto:
+    input: our=DATA+"/type_cutoff0.05-resistant.vs.sensitive.deseq2.tsv", delrio="NRvR/limma_grp_NR-R_off_NRvR.tsv"
+    output: diff="difference_chemio.tsv"
+    shell:
+        """
+            head -n1 {input.delrio} > {output.diff}
+            grep -w -f <(cat {input.our} | bawk '$3>=0.585 || $3<=-0.585' | bawk '$7<0.05' | cut -f1 | sed 's/^..//') {input.delrio} >> {output.diff}
+        """
+
+
+
+#### PROTEOMICA ###
 
 
