@@ -21,7 +21,7 @@ m2$Row.names <- NULL
 m2$recist <- ifelse(m2$dvw3 < -50, 'PR', ifelse(m2$dvw3 > 35, 'PD', 'SD'))
 m2$trimmeddw3 <- ifelse(m2$dvw3 > 150, 150, m2$dvw3)
 # add Eugy list of treated with 5FU too
-ggplot(data=m2, aes(x=POLD1, y=RAD51_NT, color=trimmeddw3))+geom_point()+theme_bw() +scale_colour_gradient2(midpoint = 35, low = "blue",
+ggplot(data=m2, aes(x=POLD1, y=RAD51_NT, fill=trimmeddw3))+geom_point(colour="black",pch=21, size=3)+theme_bw(base_size=13) +scale_fill_gradient2(midpoint = 35, low = "blue",
                                                                                                       mid = "white",
                                                                                                       high = "red")
 
@@ -97,5 +97,28 @@ ggplot(data=m5, aes(x=POLD1, y=RAD51_irino, color=trimmeddw3, shape=luraghi))+ge
                                                                                                                            high = "red")
 
 
+ggplot(data=m5, aes(x=POLD1, y=RAD51_irino, fill=trimmeddw3))+geom_point(colour="black",pch=21, size=3)+theme_bw(base_size=13) +scale_fill_gradient2(midpoint = 35, low = "blue",
+                                                                                                                                                  mid = "white",
+                                                                                                                                                  high = "red")
+
+
+
+library(stringr)
+hrd <- read.table('/mnt/trcanmed/snaketree/prj/strata/local/share/data/HRDScore.txt', sep="\t", header=TRUE)
+
+all(hrd$CASI == as.numeric(unlist(str_extract_all(hrd$smodel, '\\d+'))))
+
+m6 <- merge(m5, hrd, by.x="row.names", by.y="smodel")
+
+plot_lmsmooth_info('Illumina', 'H2AX_NT', m6)
+plot_lmsmooth_info('Illumina', 'H2AX_irino', m6)
+plot_lmsmooth_info('Illumina', 'RAD51_NT', m6)
+plot_lmsmooth_info('Illumina', 'RAD51_irino', m6)
+
+
+plot_lmsmooth_info('Amoy', 'H2AX_NT', m6)
+plot_lmsmooth_info('Amoy', 'H2AX_irino', m6)
+plot_lmsmooth_info('Amoy', 'RAD51_NT', m6)
+plot_lmsmooth_info('Amoy', 'RAD51_irino', m6)
 
 

@@ -172,6 +172,11 @@ rule chisq_torte_rad:
     output: stat="torte_{n}_RAD_chisq.txt"
     script: SRC_DIR+"/torte_chisq.R"
 
+rule chisq_torte_pold1:
+    input: n=DATA_DIR+"/pold1_{n}_classi.txt"
+    output: stat="torte_{n}_POLD1_chisq.txt"
+    script: SRC_DIR+"/torte_chisq.R"
+
 rule km_rad:
     input: surviv=DATA_DIR+"/rad51_km_2.txt"
     output: plot="rad51.svg"
@@ -189,6 +194,19 @@ rule km_rad_01_23:
     output: plot="rad51_01_23.svg"
     log: log="rad51_km_01_23.log"
     script: SRC_DIR+"/RAD_km_01_23.R"
+
+## POLD1 preprocess & km
+rule pold1_preprocess:
+    input: fra=DATA_DIR+"/pold1_quartili.txt", orig_pfs=DATA_DIR+"/rad51_km_2.txt"
+    output: outtsv="POLD1_quartili_PFS_fwup.tsv", outplot="POLD1_quartili_plot.png"
+    log: log="pold1_preprocess.log"
+    script:  SRC_DIR+"/POLD1_preprocess.R"
+
+rule km_pold:
+    input: surviv="POLD1_quartili_PFS_fwup.tsv"
+    output: plot="pold1_{vs}.svg"
+    log: log="pold1_km_{vs}.log"
+    script: SRC_DIR+"/pold1_km.R"
 
 ## oncoprint top 10 biobanca
 MUTMAT_TOP10=DATA_DIR+"/mutmat_bin_all_top10.tsv"
