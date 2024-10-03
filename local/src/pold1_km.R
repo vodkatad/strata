@@ -69,7 +69,7 @@ sfit <- survfit(Surv(PFS, status) ~ quartilimerged, data=folfiri_nona)
 #th <- theme_minimal() + scale_y_continuous(breaks=c(0, 0.25, 0.5, 0.75, 1), limits=c(0, 1),expand = c(0, 0))
 
 svg(plot)
-ggsurvplot(sfit, data = folfiri_nona, pval = FALSE, palette=c('#1E5582', '#A50019'), risk.table=TRUE)
+ggsurvplot(sfit, data = folfiri_nona, pval = FALSE, palette=c('#A50019', '#1E5582'), risk.table=TRUE)
 dev.off()
 #pl <- ggsurvplot(sfit, data = folfiri_nona, pval = FALSE, palette=c('#1E5582', '#A50019'), risk.table=TRUE)
 

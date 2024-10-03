@@ -5,7 +5,9 @@ fra_f <- snakemake@input[["fra"]]
 rad51_f <- snakemake@input[["orig_pfs"]]
 plot <- snakemake@output[['outplot']]
 outtsv <- snakemake@output[['outtsv']]
+outtsvboth <- snakemake@output[['outtsvboth']]
 log_f <- snakemake@log[['log']]
+outchisq <- snakemake@output[['outchisq']]
 
 save.image('p.Rdata')
 
@@ -44,6 +46,7 @@ sink()
 # m$p <- as.numeric(unlist(str_extract_all(m$POLD1_class, '\\d+')))
 # m$r <- as.numeric(unlist(str_extract_all(m$quartile, '\\d+')))
 # table(m$p, m$r)
+mboth <- m
 m$quartile <- m$POLD1_class
 
 stopifnot('PFS'= all(m$PFS.x == m$PFS.y))
@@ -54,6 +57,17 @@ write.table(m, file=outtsv, sep="\t", quote=FALSE, row.names=FALSE)
 
 # setwd('/mnt/trcanmed/snaketree/prj/strata/dataset/figures')
 # load('p.Rdata')
+forchisq <- as.matrix(table(m$POLD1_class, m$response))
+write.table(forchisq, file=outchisq, sep="\t", quote=FALSE, row.names=TRUE)
+
+colnames(mboth)[colnames(mboth)=='quartile'] <- 'RAD51_class'
+mboth$POLD1 <- NULL
+mboth$response <- NULL
+mboth$PFS <- mboth$PFS.x
+mboth$PFS.x <- NULL
+mboth$PFS.y <- NULL
+write.table(mboth, file=outtsvboth, sep="\t", quote=FALSE, row.names=FALSE)
+
 q('no')
 ggplot(data=m, aes(x=response, y=POLD1_class))+geom_boxplot(outlier.shape=NA)+geom_jitter(height=0)+theme_bw(base_size = 13)
 

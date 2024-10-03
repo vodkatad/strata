@@ -121,4 +121,10 @@ plot_lmsmooth_info('Amoy', 'H2AX_irino', m6)
 plot_lmsmooth_info('Amoy', 'RAD51_NT', m6)
 plot_lmsmooth_info('Amoy', 'RAD51_irino', m6)
 
+plot_lmsmooth_info('Amoy', 'POLD1', m6)
+plot_lmsmooth_info('Illumina', 'POLD1', m6)
+
+
+plot_lmsmooth_info('Illumina', 'RAD51_induction', m6)
+plot_lmsmooth_info('Amoy', 'RAD51_induction', m6)
 

@@ -167,8 +167,14 @@ rule comet_plot_welch:
     log: log="comet_w.log"
     script: SRC_DIR+'/comet_welch.R'
 
+
+rule chisq_torte_rad_meh:
+    input: n=DATA_DIR+"/{n}classes.txt"
+    output: stat="torte_{n}_RAD_chisqmeh.txt"
+    script: SRC_DIR+"/torte_chisq.R"
+
 rule chisq_torte_rad:
-    input: n=DATA_DIR+"/{n}classes_2.txt"
+    input: n=DATA_DIR+"/{n}classes_3.txt"
     output: stat="torte_{n}_RAD_chisq.txt"
     script: SRC_DIR+"/torte_chisq.R"
 
@@ -198,10 +204,12 @@ rule km_rad_01_23:
 ## POLD1 preprocess & km
 rule pold1_preprocess:
     input: fra=DATA_DIR+"/pold1_quartili.txt", orig_pfs=DATA_DIR+"/rad51_km_2.txt"
-    output: outtsv="POLD1_quartili_PFS_fwup.tsv", outplot="POLD1_quartili_plot.png"
+    output: outtsv="POLD1_quartili_PFS_fwup.tsv", outplot="POLD1_quartili_plot.png", outchisq=DATA_DIR+"/pold1_quartili4_classi.txt",
+            outtsvboth="POLD1_RAD51_quartili_PFS_fwup.tsv"
     log: log="pold1_preprocess.log"
     script:  SRC_DIR+"/POLD1_preprocess.R"
 
+# warning 0-123 is instead 012-3
 rule km_pold:
     input: surviv="POLD1_quartili_PFS_fwup.tsv"
     output: plot="pold1_{vs}.svg"

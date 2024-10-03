@@ -54,15 +54,17 @@ sfit <- survfit(Surv(PFS, status) ~ quartilimerged, data=folfiri_nona)
 
 #RESISTANT: ROSSO (R 165 G 0 B 25)
 #SENSITIVE: AZZURRO (R 30 G 85 B 130)
-
+svg(plot)
+ggsurvplot(sfit, data = folfiri_nona, pval = FALSE, palette=c('#1E5582', '#A50019'), risk.table=TRUE)
+dev.off()
 #th <- theme_minimal() + scale_y_continuous(breaks=c(0, 0.25, 0.5, 0.75, 1), limits=c(0, 1),expand = c(0, 0))
-pl <- ggsurvplot(sfit, data = folfiri_nona, pval = FALSE, palette=c('#1E5582', '#A50019'), risk.table=FALSE)
+#pl <- ggsurvplot(sfit, data = folfiri_nona, pval = FALSE, palette=c('#1E5582', '#A50019'), risk.table=TRUE)
 
-p1 <- pl$plot + scale_y_continuous(breaks=c(0, 0.25, 0.5, 0.75, 1), limits=c(0, 1),expand = c(0, 0))+
-  scale_x_continuous(expand = c(0, 0), limits=c(0, 3000), breaks=c(0, 500, 1000, 1500, 2000))
+#p1 <- pl$plot + scale_y_continuous(breaks=c(0, 0.25, 0.5, 0.75, 1), limits=c(0, 1),expand = c(0, 0))+
+# scale_x_continuous(expand = c(0, 0), limits=c(0, 3000), breaks=c(0, 500, 1000, 1500, 2000))
 
-p1 <- p1+unmute_theme
-ggsave(file = plot, plot = p1, width=88*death_conversion_dpi96, height=64*death_conversion_dpi96, units="mm")
+#p1 <- p1+unmute_theme
+#ggsave(file = plot, plot = p1, width=88*death_conversion_dpi96, height=64*death_conversion_dpi96, units="mm")
 
 sink(log_f)
 surv_pvalue(sfit)

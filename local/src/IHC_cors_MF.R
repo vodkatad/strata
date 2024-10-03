@@ -10,7 +10,6 @@ pold1_basal <- read.table('avgall_POLD1.tsv', sep="\t")
 w3 <- read.table('w3_waterfall.tsv', sep="\t", row.names=1)
 colnames(w3) <- 'dvw3'
 
-
 m <- merge(rad51_basal, pold1_basal, by="row.names")
 rownames(m) <- m$Row.names
 m$Row.names <- NULL
@@ -97,9 +96,9 @@ ggplot(data=m5, aes(x=POLD1, y=RAD51_irino, color=trimmeddw3, shape=luraghi))+ge
                                                                                                                            high = "red")
 remove <- m5
 for (i in rownames(remove)) {
-  if (remove[i, "POLD1"] < 30 && remove[i, "RAD51_irino"] > 15) {
+  if (remove[i, "POLD1"] < 35 && remove[i, "RAD51_irino"] > 15) {
     remove[i, "remove"] <- "yes"
-  } else if (remove[i, "POLD1"] > 50 && remove[i, "RAD51_irino"] < 10) {
+  } else if (remove[i, "POLD1"] > 40 && remove[i, "RAD51_irino"] < 10) {
     remove[i, "remove"] <- "yes"
   } else {
     remove[i, "remove"] <- "no"
