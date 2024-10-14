@@ -49,7 +49,7 @@ rule suppl_hr_vaf:
 #egrassi@godot:/mnt/trcanmed/snaketree/prj/strata/dataset/figures$ grep -w MUS81 ../targeted_hr_our_july_2021/gene_annot_muts.tsv 
 #egrassi@godot:/mnt/trcanmed/snaketree/prj/strata/dataset/figures$ bawk '$2!=0{print $1,$2}' binary_gene_mat.tsv
 #+ATR
-
+    
 # we need files with CRC models to retain only good models ordered like waterfall3/waterfall6: ./wf_chemio_3_6.txt was a temporary one from MarcoA's mail waterfall chemio 11/07/23, now w
 # use the definitive one.
 rule wf_chemio:
@@ -87,6 +87,13 @@ rule suppl_ndel:
     output: "suppl_table_hr_ndel.xlsx"
     shell: "tsv_to_xls -i {input.mat} -o {output} -s nDEL"
     
+# ma avendo tutti i magnifici 30 non è utile...
+rule hr_oncoprint_countdel_noRAD:
+    input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv", all_genes=DATA_DIR+"/targeted_homologous.tsv",
+           remove='/scratch/trcanmed/DE_RNASeq/dataset/m29_new_chemio_groups/removefromDEG.tsv'
+    output: op="{week}_hr_oncoprintndel_noRAD.eps", op_data="{week}_hr_oncoprintndel_noRAD.Rdata", opwf="{week}_hr_oncoprintndelwf_noRAD.eps", opmute="{week}_hr_oncoprintndelmute_noRAD.eps", wilcox_genes="{week}_wilcoxHR_noRAD.tsv"
+    log: log="{week}_hr_oncoprintndel_noRAD.pdf.log"
+    script: SRC_DIR+"/oncoprint_ndel_noRAD.R"
 
 rule hr_oncoprint_countdel:
     input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv", all_genes=DATA_DIR+"/targeted_homologous.tsv"
@@ -241,6 +248,30 @@ rule mut_resp:
         """
            filter_1col 1 {input.mut} < {input.w} > {output} 
         """
+
+#### hr oncoprint magnifici 30 RAD51 no RAD51
+rule magnifici29:
+    input: remove='/scratch/trcanmed/DE_RNASeq/dataset/m29_new_chemio_groups/removefromDEG.tsv', m29='/scratch/trcanmed/DE_RNASeq/dataset/magnifici29/samples_data'
+    output: m29="m29", m29_norad="m29_noRAD"
+    shell:
+        """
+         sed 1d {input.m29} | cut -f 2 | sort | uniq > {output.m29}
+         cat {output.m29} | filter_1col 1 -v <(cut -f 1 {input.remove} | sed 1d) > {output.m29_norad}
+        """
+
+rule hr_oncoprint_countdel_cngistic_m30:
+    input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv", all_genes=DATA_DIR+"/targeted_homologous.tsv", cnmat="../shallow/gistic_thr_genes_HR.tsv",
+           keep="m29"
+    output: op="{week}_hr_oncoprintndel_cn_m30.eps", op_data="{week}_hr_oncoprintndel_cn_m30.Rdata", opwf="{week}_hr_oncoprintndelwf_cn_m30.eps", opmute="{week}_hr_oncoprintndelmute_cn_m30.eps"
+    log: log="{week}_hr_oncoprintndel_cn_m30.pdf.log"
+    script: SRC_DIR+"/oncoprint_ndel_gistic_keep.R"
+
+rule hr_oncoprint_countdel_cngistic_m30_norad:
+    input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv", all_genes=DATA_DIR+"/targeted_homologous.tsv", cnmat="../shallow/gistic_thr_genes_HR.tsv",
+           keep="m29_noRAD"
+    output: op="{week}_hr_oncoprintndel_cn_noRAD.eps", op_data="{week}_hr_oncoprintndel_cn_noRAD.Rdata", opwf="{week}_hr_oncoprintndelwf_cn_noRAD.eps", opmute="{week}_hr_oncoprintndelmute_cn_noRAD.eps"
+    log: log="{week}_hr_oncoprintndel_cn_noRAD.pdf.log"
+    script: SRC_DIR+"/oncoprint_ndel_gistic_keep.R"
 
 ###
 rule hr_oncoprint_countdel_cngistic:
