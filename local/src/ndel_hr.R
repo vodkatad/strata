@@ -3,6 +3,7 @@ annot_f <- snakemake@input[['annot']]
 models_f <- snakemake@input[['all_models']]
 wf_f <- snakemake@input[['wf_models']]
 outfile <- snakemake@output[['mat']]
+rdata <- snakemake@output[['data']]
 thr <- as.numeric(snakemake@params[['thr']])
 log_f <- snakemake@log[['log']]
 
@@ -76,7 +77,7 @@ if (length(toadd) > 0) {
 }
 
 write.table(ndeldf, outfile, sep= "\t", quote=FALSE)
-save.image('pippo.Rdata')
+save.image(rdata)
 
 tot <- length(logdata[logdata!=0])
 monoallelic <- length(logdata[logdata!=0 & logdata<=0.99])

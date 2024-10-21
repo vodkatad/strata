@@ -53,7 +53,21 @@ rule confronto:
         """
 
 
+rule sign:
+    input: our=DATA+"/type_cutoff0.05-resistant.vs.sensitive.deseq2.tsv"
+    output: "chemio_differential-genes.tsv"
+    shell:
+        """
+            cat {input.our} | bawk '$3>=0.585 || $3<=-0.585' | bawk '$7<0.05' | sed 's/^..//' > {output}
+        """
 
-#### PROTEOMICA ###
 
+#### signatures ###
+# rule allenetal:
+#     input: our=DATA+"/type_cutoff0.05-resistant.vs.sensitive.deseq2.tsv", allen=DATA+"/signature/allenetal"
+#     output: diff="signature/difference_chemio_allenetal.tsv"
+#     shell:
+#         """
+
+#         """
 

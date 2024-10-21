@@ -127,7 +127,7 @@ data_merged <- merge(mut, wf, by.x="row.names", by.y='smodel')
 stopifnot(nrow(mut)==nrow(data_merged))
 
 wilcoxon_perc <- function(gene, mydata) {
-  percwt <- mydata[mydata[,gene] == 0, 'perc']
+  percwt <- mydata[mydata[,gene] < 3, 'perc'] ## questo meh
   percmut <- mydata[mydata[,gene] >= 3, 'perc']
   if (length(percwt) != 0 && length(percmut) != 0) {
     wt <- wilcox.test(percwt, percmut)
@@ -141,4 +141,174 @@ wil <- as.data.frame(t(sapply(colnames(mut), wilcoxon_perc, data_merged)))
 colnames(wil) <- c('pvalue', 'nwt', 'nmut')
 wil$padj <- p.adjust(wil$pvalue, method="BH")
 wil <- wil[order(wil$pvalue),]
+
+
+# deleterious 3/5 +  del or hom del
+data_merged <- merge(t(mat2), wf, by.x="row.names", by.y='smodel')
+stopifnot(nrow(t(mat2))==nrow(data_merged))
+
+wilcoxon_perc_2 <- function(gene, mydata) {
+  percwt <- mydata[!mydata[,gene] %in% c('Del3,Del', 'Del4,Del','Del5,Del', 'HomDel'), 'perc']
+  percmut <- mydata[mydata[,gene]  %in% c('Del3', 'Del4','Del5','Del3,Del', 'Del4,Del','Del5,Del', 'HomDel'), 'perc']
+  if (length(percwt) != 0 && length(percmut) != 0) {
+    wt <- wilcox.test(percwt, percmut)
+    return(c(wt$p.value, length(percwt), length(percmut)))
+  } else {
+    return(c(NA, NA, NA))
+  }
+}
+
+wil <- as.data.frame(t(sapply(rownames(mat2), wilcoxon_perc_2, data_merged)))
+colnames(wil) <- c('pvalue', 'nwt', 'nmut')
+wil$padj <- p.adjust(wil$pvalue, method="BH")
+wil <- wil[order(wil$pvalue),]
+
+## any del
+data_merged <- merge(t(mat2), wf, by.x="row.names", by.y='smodel')
+stopifnot(nrow(t(mat2))==nrow(data_merged))
+
+wilcoxon_perc_2 <- function(gene, mydata) {
+  percwt <- mydata[!mydata[,gene] %in% c('background,Del', 'Del1,Del', 'Del2,Del','Del3,Del', 'Del4,Del','Del5,Del', 'HomDel'), 'perc']
+  percmut <- mydata[mydata[,gene]  %in% c('background,Del', 'Del1,Del', 'Del2,Del','Del3,Del', 'Del4,Del','Del5,Del', 'HomDel'), 'perc']
+  if (length(percwt) != 0 && length(percmut) != 0) {
+    wt <- wilcox.test(percwt, percmut)
+    return(c(wt$p.value, length(percwt), length(percmut)))
+  } else {
+    return(c(NA, NA, NA))
+  }
+}
+
+wil <- as.data.frame(t(sapply(rownames(mat2), wilcoxon_perc_2, data_merged)))
+colnames(wil) <- c('pvalue', 'nwt', 'nmut')
+wil$padj <- p.adjust(wil$pvalue, method="BH")
+wil <- wil[order(wil$pvalue),]
+
+## hom del + del >= 3/5
+data_merged <- merge(t(mat2), wf, by.x="row.names", by.y='smodel')
+stopifnot(nrow(t(mat2))==nrow(data_merged))
+
+wilcoxon_perc_2 <- function(gene, mydata) {
+  percwt <- mydata[!mydata[,gene] %in% c('Del3', 'Del4','Del5','Del3,Del', 'Del4,Del','Del5,Del', 'HomDel'), 'perc']
+  percmut <- mydata[mydata[,gene]  %in% c('Del3', 'Del4','Del5','Del3,Del', 'Del4,Del','Del5,Del', 'HomDel'), 'perc']
+  if (length(percwt) != 0 && length(percmut) != 0) {
+    wt <- wilcox.test(percwt, percmut)
+    return(c(wt$p.value, length(percwt), length(percmut)))
+  } else {
+    return(c(NA, NA, NA))
+  }
+}
+
+wil <- as.data.frame(t(sapply(rownames(mat2), wilcoxon_perc_2, data_merged)))
+colnames(wil) <- c('pvalue', 'nwt', 'nmut')
+wil$padj <- p.adjust(wil$pvalue, method="BH")
+wil <- wil[order(wil$pvalue),]
+
+## hom del o SNV qualsiasi + del single
+data_merged <- merge(t(mat2), wf, by.x="row.names", by.y='smodel')
+stopifnot(nrow(t(mat2))==nrow(data_merged))
+
+wilcoxon_perc_2 <- function(gene, mydata) {
+  percwt <- mydata[!mydata[,gene] %in% c('Del1,Del', 'Del2,Del','Del3,Del', 'Del4,Del','Del5,Del', 'HomDel'), 'perc']
+  percmut <- mydata[mydata[,gene]  %in% c('Del1,Del', 'Del2,Del','Del3,Del', 'Del4,Del','Del5,Del', 'HomDel'), 'perc']
+  if (length(percwt) != 0 && length(percmut) != 0) {
+    wt <- wilcox.test(percwt, percmut)
+    return(c(wt$p.value, length(percwt), length(percmut)))
+  } else {
+    return(c(NA, NA, NA))
+  }
+}
+
+wil <- as.data.frame(t(sapply(rownames(mat2), wilcoxon_perc_2, data_merged)))
+colnames(wil) <- c('pvalue', 'nwt', 'nmut')
+wil$padj <- p.adjust(wil$pvalue, method="BH")
+wil <- wil[order(wil$pvalue),]
+##
+data <- read.table('/mnt/trcanmed/snaketree/prj/strata/dataset/figures/vaf_hr.tsv', sep="\t", header=TRUE, stringsAsFactors = F)
+
+num <- data.frame(matrix(0, nrow=nrow(data), ncol(data)), stringsAsFactors = F)
+rownames(num) <- rownames(data)
+colnames(num) <- colnames(data)
+for (i in seq(1, nrow(data))) {
+  for (j in seq(1, ncol(data))) {
+    if (!is.na(data[i,j]) && grepl(',', data[i,j])) {
+      vals <- strsplit(data[i,j], split=',')
+      print(max(as.numeric(unlist(vals))))
+      num[i,j] <- max(as.numeric(unlist(vals)))
+    } else if (!is.na(data[i,j]) && data[i,j] != '') {
+      num[i,j] <- as.numeric(data[i,j])
+    } else {
+      num[i,j] <- 0
+    }
+  }
+}
+
+data_merged <- merge(num, wf, by.x="row.names", by.y='smodel')
+stopifnot(nrow(num)==nrow(data_merged))
+
+wilcoxon_perc_3 <- function(gene, mydata) {
+  percwt <- mydata[mydata[,gene] < 0.99, 'perc']
+  percmut <- mydata[mydata[,gene]  > 0.99, 'perc']
+  if (length(percwt) != 0 && length(percmut) != 0) {
+    print(gene)
+    wt <- wilcox.test(percwt, percmut)
+    return(c(wt$p.value, length(percwt), length(percmut)))
+  } else {
+    return(c(NA, NA, NA))
+  }
+}
+
+wil <- as.data.frame(t(sapply(colnames(num), wilcoxon_perc_3, data_merged)))
+colnames(wil) <- c('pvalue', 'nwt', 'nmut')
+wil$padj <- p.adjust(wil$pvalue, method="BH")
+wil <- wil[order(wil$pvalue),]
+
+ii <- which(num >= 0.99, arr.ind=T)
+rownames(num)[ii[,1]]
+colnames(num)[ii[,2]]
+
+
+##
+
+
+su <- colSums(num>0.9)
+su <- su[order(-su)]
+
+mat2 <- data.frame(matrix(0, nrow=nrow(num), ncol(num)), stringsAsFactors = F)
+rownames(mat2) <- rownames(num)
+colnames(mat2) <- colnames(num)
+for (i in seq(1, nrow(num))) {
+  for (j in seq(1, ncol(num))) {
+    if (num[i,j] > 0.9) {
+      mat2[i,j] <- 'HomozigMut'
+    } else {
+      mat2[i,j] <- 'Background'
+    }
+  }
+}
+
+col = c("Background"= '#CCCCCC', "HomozigMut"= 'blue')
+
+alter_fun = list(
+  Background = function(x, y, w, h) {
+    grid.rect(x, y, w*0.5, h, 
+              gp = gpar(fill = "#CCCCCC", col = NA))
+  },
+  HomozigMut = function(x, y, w, h) {
+    grid.rect(x, y, w*0.5, h, 
+              gp = gpar(fill = 'blue', col = NA))
+  }
+)
+
+get_recist <- function(x) {
+  res <- vector(mode="character", length=length(x))
+  #res <- ifelse(x < -50, 'OR', ifelse(x > 35, 'PD', 'SD'))
+  res <- ifelse(x < -50,  rgb(red=30, green=85, blue=130, maxColorValue=255), ifelse(x > 35,  rgb(red=165, green=0, blue=25, maxColorValue=255), 8))
+  #res[is.na(x)] <- 'black'
+  return(res)
+}
+wf <- wf[wf$smodel %in% rownames(mat2),]
+op2 <- oncoPrint(t(mat2), alter_fun = alter_fun, column_order=wf$smodel, col=col, row_order = names(su),
+                 remove_empty_columns = FALSE, remove_empty_rows = FALSE, column_names_gp=gpar(fontsize=8),
+                 top_annotation = HeatmapAnnotation(Irinotecan = anno_barplot(wf$perc,  gp = gpar(fill = get_recist(wf$perc), col=NA), height= unit(5, 'cm'), border=FALSE),
+                                                    cbar = anno_oncoprint_barplot()), show_pct=FALSE)#, height=unit(129.5, 'mm'), width=unit(182.46, unit='mm'))
 

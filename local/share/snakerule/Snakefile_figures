@@ -70,7 +70,7 @@ rule hr_oncoprint:
 rule convert_to_ndel_gene_sample_mat:
     input: mut=HR_MUTS, annot=HR_MUTS_ANNOT, all_models="all_cases_hr.tsv", wf_models='w3_waterfall.tsv'
     params: thr=0.05
-    output: mat="nDel_gene_mat.tsv"
+    output: mat="nDel_gene_mat.tsv", data='mut_data.Rdata'
     log: log="nDel_gene_mat.tsv.log"
     script: SRC_DIR+"/ndel_hr.R"
 
