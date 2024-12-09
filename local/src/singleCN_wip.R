@@ -2,7 +2,7 @@ library(ComplexHeatmap)
 library(ggplot2)
 library(RColorBrewer)
 load('/mnt/trcanmed/snaketree/prj/strata/dataset/figures/noia.Rdata')
-
+setwd('/mnt/trcanmed/snaketree/prj/strata/dataset/figures')
 cn <- cn[wf$smodel,]
 cnhigh <- ifelse(cn== 2, 'Gain', ifelse(cn==-2, 'HomDel', ifelse(cn==-1, 'Del', 'WT')))
 #cn <- t(apply(mut, 2, as.character))
@@ -267,24 +267,41 @@ rownames(num)[ii[,1]]
 colnames(num)[ii[,2]]
 
 
-##
+####
 
 
 su <- colSums(num>0.9)
 su <- su[order(-su)]
 
-mat2 <- data.frame(matrix(0, nrow=nrow(num), ncol(num)), stringsAsFactors = F)
-rownames(mat2) <- rownames(num)
-colnames(mat2) <- colnames(num)
+mat3 <- data.frame(matrix(0, nrow=nrow(num), ncol(num)), stringsAsFactors = F)
+rownames(mat3) <- rownames(num)
+colnames(mat3) <- colnames(num)
 for (i in seq(1, nrow(num))) {
   for (j in seq(1, ncol(num))) {
     if (num[i,j] > 0.9) {
-      mat2[i,j] <- 'HomozigMut'
+      mat3[i,j] <- 'HomozigMut'
     } else {
-      mat2[i,j] <- 'Background'
+      mat3[i,j] <- 'Background'
     }
   }
 }
+# add missing genes
+genes <- read.table(all_genes_f, sep="\t", header=TRUE)
+
+mat <- t(mat3)
+to_add <- setdiff(genes$gene_symbol, rownames(mat))
+tot_genes <- nrow(genes)
+tot_addgenes <- length(to_add)
+tot_models <- ncol(mat)
+to_add_mat <- matrix(rep('Background', tot_addgenes*tot_models), nrow=tot_addgenes, ncol=tot_models)
+rownames(to_add_mat) <- to_add
+colnames(to_add_mat) <- colnames(mat)
+mat <- rbind(mat, to_add_mat)
+n <- names(su)
+su <- c(su, rep(0, length(to_add)))
+names(su) <- c(n, to_add)
+
+mat3 <- t(mat)
 
 col = c("Background"= '#CCCCCC', "HomozigMut"= 'blue')
 
@@ -306,9 +323,64 @@ get_recist <- function(x) {
   #res[is.na(x)] <- 'black'
   return(res)
 }
-wf <- wf[wf$smodel %in% rownames(mat2),]
-op2 <- oncoPrint(t(mat2), alter_fun = alter_fun, column_order=wf$smodel, col=col, row_order = names(su),
+wf <- wf[wf$smodel %in% rownames(mat3),]
+op2 <- oncoPrint(t(mat3), alter_fun = alter_fun, column_order=wf$smodel, col=col, row_order = names(su),
                  remove_empty_columns = FALSE, remove_empty_rows = FALSE, column_names_gp=gpar(fontsize=8),
                  top_annotation = HeatmapAnnotation(Irinotecan = anno_barplot(wf$perc,  gp = gpar(fill = get_recist(wf$perc), col=NA), height= unit(5, 'cm'), border=FALSE),
                                                     cbar = anno_oncoprint_barplot()), show_pct=FALSE)#, height=unit(129.5, 'mm'), width=unit(182.46, unit='mm'))
+
+# homozig mut stratified by deleteriousness
+mat4 <- mat2
+mat4 <- gsub(',Del', '', mat4)
+# unique(unlist(as.data.frame(mat4)))
+mat4 <- gsub('Amplification', 'background', mat4)
+mat4 <- gsub('HomDel', 'background', mat4)
+table(unlist(as.data.frame(mat4)))
+
+mat5 <- t(mat3)
+table(unlist(as.data.frame(mat5)))
+mat6 <- mat4 
+mat6[mat5=="Background"] <- 'background'
+table(unlist(as.data.frame(mat6)))
+
+pal=brewer.pal(9,'YlOrRd')[seq(3,9)]
+#pal <- rev(hcl.colors(7, palette = "Sunset"))
+col = c("Del0"= pal[1], "Del1"= pal[2], "Del2"= pal[3], "Del3"= pal[4], "Del4"= pal[5], "Del5"=pal[6])
+
+alter_fun = list(
+  background = function(x, y, w, h) {
+    grid.rect(x, y, w*0.5, h, 
+              gp = gpar(fill = "#CCCCCC", col = NA))
+  },
+  Del0 = function(x, y, w, h) {
+    grid.rect(x, y, w*0.5, h*1, 
+              gp = gpar(fill = col["Del0"], col = NA))
+  },
+  Del1 = function(x, y, w, h) {
+    grid.rect(x, y, w*0.5, h*1, 
+              gp = gpar(fill = col["Del1"], col = NA))
+  },
+  Del2 = function(x, y, w, h) {
+    grid.rect(x, y, w*0.5, h*1, 
+              gp = gpar(fill = col["Del2"], col = NA))
+  },
+  Del3 = function(x, y, w, h) {
+    grid.rect(x, y, w*0.5, h*1, 
+              gp = gpar(fill = col["Del3"], col = NA))
+  },
+  Del4 = function(x, y, w, h) {
+    grid.rect(x, y, w*0.5, h*1, 
+              gp = gpar(fill = col["Del4"], col = NA))
+  },  
+  Del5 = function(x, y, w, h) {
+    grid.rect(x, y, w*0.5, h*1, 
+              gp = gpar(fill = col["Del5"], col = NA))
+  }
+)
+
+op6 <- oncoPrint(mat6, alter_fun = alter_fun, column_order=wf$smodel, col=col, row_order = names(su),
+                 remove_empty_columns = FALSE, remove_empty_rows = FALSE, column_names_gp=gpar(fontsize=8),
+                 top_annotation = HeatmapAnnotation(Irinotecan = anno_barplot(wf$perc,  gp = gpar(fill = get_recist(wf$perc), col=NA), height= unit(5, 'cm'), border=FALSE),
+                                                    cbar = anno_oncoprint_barplot()), show_pct=FALSE)#, height=unit(129.5, 'mm'), width=unit(182.46, unit='mm'))
+
 
