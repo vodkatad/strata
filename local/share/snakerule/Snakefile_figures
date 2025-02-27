@@ -348,3 +348,17 @@ rule merge_sens_res_notreat:
 
 rule all_avg_notreat:  
     input: expand("avgall_POLD1.tsv")
+
+### IHC correlations on m29
+rule merge_all:
+    input: RAD51_NT="avgall_RAD51_NT.tsv", RAD51_irino="avgall_RAD51_irino.tsv", POLD="avgall_POLD1.tsv", w3="w3_waterfall.tsv", H2AX_NT='avgall_H2AX_NT.tsv', H2AX_irino='avgall_H2AX_irino.tsv',
+           HRD=DATA_DIR+"/HRDScore.txt"
+    output: out="IHC_m29_merged.tsv"
+    script: SRC_DIR+"/ihc_m29_merge.R"
+
+rule ihc_cor_plot:
+    input: m="IHC_m29_merged.tsv"
+    output: outplot="x-{axisX}_y-{axisY}_corrplot.pdf"
+    log: log="x-{axisX}-y{axisY}_corrplot.log"
+    script: SRC_DIR+"/ihc_corrplot.R"
+

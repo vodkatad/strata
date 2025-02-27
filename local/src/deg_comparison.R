@@ -379,7 +379,7 @@ wpath$name <- NULL
 top <- merge(top, wpath, by="row.names")
 rownames(top) <- top$Row.names
 top$Row.names <- NULL
-top <- top[order(top$order),]
+top <- top[order(top$order),]t
 top$color <- NULL
 top$order <- NULL
 

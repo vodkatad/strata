@@ -383,4 +383,56 @@ op6 <- oncoPrint(mat6, alter_fun = alter_fun, column_order=wf$smodel, col=col, r
                  top_annotation = HeatmapAnnotation(Irinotecan = anno_barplot(wf$perc,  gp = gpar(fill = get_recist(wf$perc), col=NA), height= unit(5, 'cm'), border=FALSE),
                                                     cbar = anno_oncoprint_barplot()), show_pct=FALSE)#, height=unit(129.5, 'mm'), width=unit(182.46, unit='mm'))
 
+## homdel
 
+
+table(mat6[rownames(mat6)=='TOP3B'])
+table(mat6[rownames(mat6)=='TOP3A'])
+table(mat6[rownames(mat6)=='ATRX'])
+table(mat6[rownames(mat6)=='ATM'])
+table(mat6[rownames(mat6)=='MUS81'])
+table(mat6[rownames(mat6)=='RBBP8'])
+which(mat6 == 'Del2', arr.ind=T)
+which(mat6 == 'Del1', arr.ind=T)
+
+
+#### m29 grigi
+load('/mnt/trcanmed/snaketree/prj/strata/dataset/figures/w3_hr_oncoprintndel_cn_noRAD.Rdata')
+rownames(mat)[which(mat!="background", arr.ind=T)[,1]]
+colnames(mat)[which(mat!="background", arr.ind=T)[,2]]
+
+data <- read.table('/mnt/trcanmed/snaketree/prj/strata/dataset/figures/vaf_hr.tsv', sep="\t", header=TRUE, stringsAsFactors = F)
+
+num <- data.frame(matrix(0, nrow=nrow(data), ncol(data)), stringsAsFactors = F)
+rownames(num) <- rownames(data)
+colnames(num) <- colnames(data)
+for (i in seq(1, nrow(data))) {
+  for (j in seq(1, ncol(data))) {
+    if (!is.na(data[i,j]) && grepl(',', data[i,j])) {
+      vals <- strsplit(data[i,j], split=',')
+      print(max(as.numeric(unlist(vals))))
+      num[i,j] <- max(as.numeric(unlist(vals)))
+    } else if (!is.na(data[i,j]) && data[i,j] != '') {
+      num[i,j] <- as.numeric(data[i,j])
+    } else {
+      num[i,j] <- 0
+    }
+  }
+}
+
+data_merged <- merge(num, wf, by.x="row.names", by.y='smodel')
+
+num <- num[rownames(num) %in% wf$smodel,]
+
+mat3 <- data.frame(matrix(0, nrow=nrow(num), ncol(num)), stringsAsFactors = F)
+rownames(mat3) <- rownames(num)
+colnames(mat3) <- colnames(num)
+for (i in seq(1, nrow(num))) {
+  for (j in seq(1, ncol(num))) {
+    if (num[i,j] > 0.9) {
+      mat3[i,j] <- 'HomozigMut'
+    } else {
+      mat3[i,j] <- 'Background'
+    }
+  }
+}

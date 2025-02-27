@@ -1,8 +1,13 @@
+import os
+import pandas as pd
+
 DATA="../../local/share/data"
 DATASET=DATA+"/review"
 DELRIO=DATASET+"/delrio"
 SRC_DIR="../../local/src"
 BIN_DIR="../../local/bin"
+
+ROOT=os.environ.get("SNAKE_ROOT")
 
 rule manipulation:
     input: one=DELRIO+"GSE72970_series_matrix.txt.gz", two=DELRIO+"GSE62080_series_matrix.txt.gz"
@@ -71,3 +76,20 @@ rule sign:
 
 #         """
 
+
+
+### magnifici 25
+
+rule magnifici:
+    input: methy=ROOT+"/prj/pdx_methylation/dataset/v4/heatmap/All_samples_info_final_k5_2023.tsv", magnifici=ROOT+"/prj/pdxopedia/local/share/data/magnifici29_samples_data"
+    output: methy="magnifici29_inMethy_samples_data.tsv"
+    run:
+        methy = pd.read_csv(input.methy, sep="\t", header=0)
+        methy["model"] = methy["type"].str[:7]
+        magnifici = pd.read_csv(input.magnifici, sep="\t", header=0, index_col=0, names=["model", "batch", "response"])
+        
+        methy = methy.merge(magnifici, on="model", how="inner")
+        methy = methy.drop_duplicates(subset=['type'])
+        
+        methy.to_csv(output.methy, sep="\t", index=False)
+        
