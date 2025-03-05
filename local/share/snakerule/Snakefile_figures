@@ -359,6 +359,13 @@ rule merge_all:
 rule ihc_cor_plot:
     input: m="IHC_m29_merged.tsv"
     output: outplot="x-{axisX}_y-{axisY}_corrplot.pdf"
-    log: log="x-{axisX}-y{axisY}_corrplot.log"
+    log: log="x-{axisX}_y-{axisY}_corrplot.log"
     script: SRC_DIR+"/ihc_corrplot.R"
 
+rule depmap_corrplot:
+    input: m=DATA_DIR+"/POLD1_Rel_Prot_EXPR_Irino_IC50.csv"
+    output: outplot="x-POLD1_y-IrinoIC50_depmap_corrplot.pdf"
+    log: log="x-POLD1_y-IrinoIC50_depmap_corrplot.log"
+    script: SRC_DIR+"/depmap_corrplot.R"
+    
+# Right now oncoprints for Suppl Fig 5 have been generated live by singleCN_wip.R, here comments points to the right op objects.

@@ -1,8 +1,8 @@
 library(ComplexHeatmap)
 library(ggplot2)
 library(RColorBrewer)
-load('/mnt/trcanmed/snaketree/prj/strata/dataset/figures/noia.Rdata')
-setwd('/mnt/trcanmed/snaketree/prj/strata/dataset/figures')
+load('/mnt/cold1/snaketree/prj/strata/dataset/figures/noia.Rdata')
+setwd('/mnt/cold1/snaketree/prj/strata/dataset/figures')
 cn <- cn[wf$smodel,]
 cnhigh <- ifelse(cn== 2, 'Gain', ifelse(cn==-2, 'HomDel', ifelse(cn==-1, 'Del', 'WT')))
 #cn <- t(apply(mut, 2, as.character))
@@ -120,6 +120,11 @@ op2 <- oncoPrint(mat2, alter_fun = alter_fun, col = col, row_order = names(su), 
                  remove_empty_columns = FALSE, remove_empty_rows = FALSE, column_names_gp=gpar(fontsize=8),
                  top_annotation = HeatmapAnnotation(Irinotecan = anno_barplot(wf$perc,  gp = gpar(fill = get_recist(wf$perc), col=NA), height= unit(5, 'cm'), border=FALSE),
                                                     cbar = anno_oncoprint_barplot()), show_pct=FALSE)#, height=unit(129.5, 'mm'), width=unit(182.46, unit='mm'))
+
+## this is suppl5 B HERE
+pdf(file="S6_B.pdf", width=9.4, height=7, family="sans")
+print(op2)
+graphics.off()
 
 ## 3/5 deleterious are somehow relevant?
 
@@ -382,6 +387,16 @@ op6 <- oncoPrint(mat6, alter_fun = alter_fun, column_order=wf$smodel, col=col, r
                  remove_empty_columns = FALSE, remove_empty_rows = FALSE, column_names_gp=gpar(fontsize=8),
                  top_annotation = HeatmapAnnotation(Irinotecan = anno_barplot(wf$perc,  gp = gpar(fill = get_recist(wf$perc), col=NA), height= unit(5, 'cm'), border=FALSE),
                                                     cbar = anno_oncoprint_barplot()), show_pct=FALSE)#, height=unit(129.5, 'mm'), width=unit(182.46, unit='mm'))
+# this is suppl5 A  HERE
+
+pdf(file="S6_A.pdf", width=9.4, height=7, family="sans")
+print(op6)
+graphics.off()
+
+#setEPS()
+#postscript(op_f, width=9.4, height=7, family="sans")
+#print(op)
+#graphics.off()
 
 ## homdel
 

@@ -7,29 +7,21 @@ log_f <- snakemake@log[['log']]
 
 size <- 8
 
+m <- read.table(m_f, sep=",", stringsAsFactors = F, header=T)
+
 
 axis_names <- list(
-  H2AX_induction= 'γ-2AX induction post-treatment',
-  dvw3= 'Relative tumor growth (% to baseline)',
-  POLD1 = 'POLD1 nuclear positivity (% of total nuclear area)',
-  RAD51_NT = 'Basal RAD51 nuclear positivity (% of total nuclear area)',
-  RAD51_irino = 'RAD51 nuclear positivity post-treatment (% of nuclei)'
+  POLD1= 'POLD1 relative protein expression',
+  IC50= 'Irinotecan IC50'
 )
 
 x_lim <- list(
-  POLD1 = c(5, 65),
-  H2AX_induction= c(0, 60),
-  RAD51_NT = c(0, 10),
-  RAD51_irino = c(0, 40)
+  POLD1 = c(-2, 2)
 )
 
 y_lim <- list(
-  dvw3 = c(-100, 300)
+  IC50 = c(-2, 4)
 )
-
-
-m <- read.table(m_f, sep="\t", stringsAsFactors = F)
-
 #font_add(family = "myriad", regular = snakemake@input[['myriad']])
 #showtext_auto()
 
@@ -94,7 +86,7 @@ plot_lmsmooth_info <- function(xvar, yvar, md) {
   return(list(p, title))
 }
 
-p <- plot_lmsmooth_info(snakemake@wildcards[['axisX']], snakemake@wildcards[['axisY']], m)
+p <- plot_lmsmooth_info("POLD1", 'IC50', m)
 
 sink(log_f)
 print(p[[2]])
