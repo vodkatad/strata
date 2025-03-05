@@ -90,7 +90,7 @@ rule suppl_ndel:
 # ma avendo tutti i magnifici 30 non è utile...
 rule hr_oncoprint_countdel_noRAD:
     input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv", all_genes=DATA_DIR+"/targeted_homologous.tsv",
-           remove='/scratch/trcanmed/DE_RNASeq/dataset/m29_new_chemio_groups/removefromDEG.tsv'
+           fremove='/scratch/trcanmed/DE_RNASeq/dataset/m29_new_chemio_groups/removefromDEG.tsv'
     output: op="{week}_hr_oncoprintndel_noRAD.eps", op_data="{week}_hr_oncoprintndel_noRAD.Rdata", opwf="{week}_hr_oncoprintndelwf_noRAD.eps", opmute="{week}_hr_oncoprintndelmute_noRAD.eps", wilcox_genes="{week}_wilcoxHR_noRAD.tsv"
     log: log="{week}_hr_oncoprintndel_noRAD.pdf.log"
     script: SRC_DIR+"/oncoprint_ndel_noRAD.R"
@@ -251,12 +251,12 @@ rule mut_resp:
 
 #### hr oncoprint magnifici 30 RAD51 no RAD51
 rule magnifici29:
-    input: remove='/scratch/trcanmed/DE_RNASeq/dataset/m29_new_chemio_groups/removefromDEG.tsv', m29='/scratch/trcanmed/DE_RNASeq/dataset/magnifici29/samples_data'
+    input: fremove='/scratch/trcanmed/DE_RNASeq/dataset/m29_new_chemio_groups/removefromDEG.tsv', m29='/scratch/trcanmed/DE_RNASeq/dataset/magnifici29/samples_data'
     output: m29="m29", m29_norad="m29_noRAD"
     shell:
         """
          sed 1d {input.m29} | cut -f 2 | sort | uniq > {output.m29}
-         cat {output.m29} | filter_1col 1 -v <(cut -f 1 {input.remove} | sed 1d) > {output.m29_norad}
+         cat {output.m29} | filter_1col 1 -v <(cut -f 1 {input.fremove} | sed 1d) > {output.m29_norad}
         """
 
 rule hr_oncoprint_countdel_cngistic_m30:
