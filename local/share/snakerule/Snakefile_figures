@@ -59,7 +59,7 @@ rule wf_chemio:
         """
            cut -f 1,2 {input} | grep -v CASE | sort -gk2,2 -r > {output.w3}  
            bawk '$3!=""{{print $1,$3}}' {input} | grep -v CASE| sort -gk2,2 -r > {output.w6}  
--        """
+        """
 
 rule hr_oncoprint:
     input: mutmat="binary_gene_mat.tsv", wf="{week}_waterfall.tsv"
