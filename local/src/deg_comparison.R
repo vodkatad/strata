@@ -239,7 +239,6 @@ pheatmap(top4,
          breaks = bk, color=my_palette)
 
 ### selected pathways
-
 grigi <- read.table('/scratch/trcanmed/DE_RNASeq/dataset/m29_new_chemio_groups/risultati_gsea_totali.tsv', sep="\t", header=T)
 m29 <- read.table('/scratch/trcanmed/DE_RNASeq/dataset/magnifici29/risultati_gsea_totali.tsv', sep="\t", header=T)
 nongrigi <- read.table('/scratch/trcanmed/DE_RNASeq/dataset/complementare_m29_grigi/risultati_gsea_totali.tsv', sep="\t", header=T)
@@ -283,7 +282,7 @@ pval <- mw[, grepl('pvalue', colnames(mw))]
 #*** P ≤ 0.001
 
 #**** P ≤ 0.0001 (For the last two choices only)
-ast <- ifelse(pval < 0.05, '*', '')
+#ast <- ifelse(pval < 0.05, '*', '')
 
 minv <- min(top)
 maxv <- max(top)
@@ -307,12 +306,12 @@ top <- top[order(top$order),]
 top$color <- NULL
 top$order <- NULL
 
-ast <- merge(ast, wpath, by="row.names")
-rownames(ast) <- ast$Row.names
-ast$Row.names <- NULL
-ast <- ast[order(ast$order),]
-ast$color <- NULL
-ast$order <- NULL
+#ast <- merge(ast, wpath, by="row.names")
+#rownames(ast) <- ast$Row.names
+#ast$Row.names <- NULL
+#ast <- ast[order(ast$order),]
+#ast$color <- NULL
+#ast$order <- NULL
 
 
 wpath$color <- NULL
@@ -323,10 +322,11 @@ annot_color_list <- list(order=c(l1='#74A9CF', l2="#A50026", l3='black', l4='#41
 pheatmap(top,
          breaks = bk, color=my_palette, cluster_rows = F, cluster_cols = F, annotation_row=wpath,
          annotation_colors = annot_color_list,
-         display_numbers=ast, number_color='black', fontsize_number=10)
+         number_color='black', fontsize_number=10) # removed display_numbers=ast,
 
 
-##
+### for Figura S4 HERE
+
 m29 <- read.table('/scratch/trcanmed/DE_RNASeq/dataset/magnifici29/risultati_gsea_totali.tsv', sep="\t", header=T)
 all <- read.table('/scratch/trcanmed/DE_RNASeq/dataset/chemio_jul23/risultati_gsea_totali.tsv', sep="\t", header=T)
 
@@ -362,7 +362,7 @@ ast <- ifelse(pval < 0.05, '*', '')
 
 
 minv <- min(top)
-maxv <- max(top)
+maxv <- 2
 neutral_value <- 0
 bk1 <- seq(minv-0.001, neutral_value-0.0009, length.out=224)
 bk2 <- seq(neutral_value+0.0001, maxv+0.001, length.out=224)
@@ -379,7 +379,7 @@ wpath$name <- NULL
 top <- merge(top, wpath, by="row.names")
 rownames(top) <- top$Row.names
 top$Row.names <- NULL
-top <- top[order(top$order),]t
+top <- top[order(top$order),]
 top$color <- NULL
 top$order <- NULL
 
@@ -396,7 +396,9 @@ wpath$color <- NULL
 wpath$order <- factor(wpath$order, levels = c('l1','l2','l3','l4'))
 
 annot_color_list <- list(order=c(l1='#74A9CF', l2="#A50026", l3='black', l4='#41AB5D'))
+pdf('/mnt/trcanmed/snaketree/prj/strata/dataset/figures/S4_heatmap_m29_all.pdf', family="sans")
 pheatmap(top,
          breaks = bk, color=my_palette, cluster_rows = F, cluster_cols = F, annotation_row=wpath,
          annotation_colors = annot_color_list,
-         display_numbers=ast, number_color='black', fontsize_number=10)
+         number_color='black', fontsize_number=10) # removed display_numbers=ast, 
+graphics.off()

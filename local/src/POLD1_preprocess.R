@@ -62,7 +62,7 @@ write.table(forchisq, file=outchisq, sep="\t", quote=FALSE, row.names=TRUE)
 
 colnames(mboth)[colnames(mboth)=='quartile'] <- 'RAD51_class'
 mboth$POLD1 <- NULL
-mboth$response <- NULL
+#mboth$response <- NULL
 mboth$PFS <- mboth$PFS.x
 mboth$PFS.x <- NULL
 mboth$PFS.y <- NULL
