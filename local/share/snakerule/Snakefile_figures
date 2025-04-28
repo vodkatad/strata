@@ -273,6 +273,14 @@ rule hr_oncoprint_countdel_cngistic_m30_norad:
     log: log="{week}_hr_oncoprintndel_cn_noRAD.pdf.log"
     script: SRC_DIR+"/oncoprint_ndel_gistic_keep.R"
 
+rule hr_oncoprint_countdel_cngisticall_m30_norad:
+    input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv", all_genes=DATA_DIR+"/targeted_homologous.tsv", cnmat="../shallow/gistic_thr_genes_HR.tsv",
+           keep="m29_noRAD"
+    output: op="{week}_hr_oncoprintndel_allcn_noRAD.eps", op_data="{week}_hr_oncoprintndel_allcn_noRAD.Rdata", opwf="{week}_hr_oncoprintndelwf_allcn_noRAD.eps", opmute="{week}_hr_oncoprintndelmute_allcn_noRAD.eps"
+    log: log="{week}_hr_oncoprintndel_allcn_noRAD.pdf.log"
+    script: SRC_DIR+"/oncoprint_ndel_gisticall_keep.R"
+
+
 ###
 rule hr_oncoprint_countdel_cngistic:
     input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv", all_genes=DATA_DIR+"/targeted_homologous.tsv", cnmat="../shallow/gistic_thr_genes_HR.tsv"
