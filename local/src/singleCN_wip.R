@@ -1,8 +1,10 @@
 library(ComplexHeatmap)
 library(ggplot2)
 library(RColorBrewer)
-load('/mnt/cold1/snaketree/prj/strata/dataset/figures/noia.Rdata')
-setwd('/mnt/cold1/snaketree/prj/strata/dataset/figures')
+#load('/mnt/cold1/snaketree/prj/strata/dataset/figures/noia.Rdata')
+load('/mnt/trcanmed/snaketree/prj/strata/dataset/figures/noia.Rdata')
+#setwd('/mnt/cold1/snaketree/prj/strata/dataset/figures')
+setwd('/mnt/trcanmed/snaketree/prj/strata/dataset/figures')
 cn <- cn[wf$smodel,]
 cnhigh <- ifelse(cn== 2, 'Gain', ifelse(cn==-2, 'HomDel', ifelse(cn==-1, 'Del', 'WT')))
 #cn <- t(apply(mut, 2, as.character))
