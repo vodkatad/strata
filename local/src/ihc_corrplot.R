@@ -9,22 +9,27 @@ size <- 8
 
 
 axis_names <- list(
-  H2AX_induction= 'γ-2AX induction post-treatment',
+  H2AX_induction= 'γ-H2AX induction post-treatment',
   dvw3= 'Relative tumor growth (% to baseline)',
   POLD1 = 'POLD1 nuclear positivity (% of total nuclear area)',
   RAD51_NT = 'Basal RAD51 nuclear positivity (% of total nuclear area)',
-  RAD51_irino = 'RAD51 nuclear positivity post-treatment (% of nuclei)'
+  RAD51_irino = 'RAD51 nuclear positivity post-treatment (% of nuclei)',
+  Illumina = 'HRD Score (Illumina TruSight Oncology 500 HRD)',
+  Amoy = 'HRD Score (AmoyDX HRD Focus)'
 )
 
+### fixed_min needs to be adjusted for variable that goes < 0
 x_lim <- list(
-  POLD1 = c(5, 65),
+  POLD1 = c(15, 65),
   H2AX_induction= c(0, 60),
   RAD51_NT = c(0, 10),
-  RAD51_irino = c(0, 40)
+  RAD51_irino = c(0, 40),
+  Illumina = c(0,30)
 )
 
 y_lim <- list(
-  dvw3 = c(-100, 300)
+  dvw3 = c(-100, 300),
+  Amoy = c(-20,100)
 )
 
 
@@ -49,10 +54,10 @@ largerSize <- (size) * death_conversion_dpi96
 # arial family gave:
 #Error in grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y,  : 
 #                              invalid font type
-                            
+#extrafont::loadfonts()
 
 unmute_theme <- theme(
-  text = element_text(size = textSize), #, family='Arial'),
+  text = element_text(size = textSize),# family='Arial'),
   axis.title = element_text(size = largerSize),
   axis.text.x = element_text(size = textSize, color="black"),#, angle = 90, vjust = 0.5, hjust=1)
   axis.text.y = element_text(size = textSize, color="black"),
@@ -66,17 +71,38 @@ unmute_theme <- theme(
   panel.background = element_blank()
 )
 
-guess_ticks <- function(values, nticks=5, fixed_max=NULL, fixed_min=0) {
+# guess_ticks <- function(values, nticks=5, fixed_max=NULL, fixed_min=0) {
+#   vmax <- max(values)
+#   if (is.null(fixed_max)) { 
+#     round_max <- ceiling(vmax)
+#   } else {
+#     round_max <- fixed_max
+#   }
+#   my_breaks <- seq(fixed_min, round_max, length.out=nticks)
+#   return(my_breaks)
+# }
+
+### 15/04/2025 Marco: I made this change cause i was getting error:
+### Error in seq.default(fixed_min, round_max, length.out = nticks) : 
+###   'from' must be of length 1
+### Calls: plot_lmsmooth_info -> guess_ticks -> seq -> seq.default
+### I'm not sure if this is the best/right solution, but it works
+guess_ticks <- function(values, nticks=5, fixed_max=NULL, fixed_min=NULL) {
   vmax <- max(values)
+  vmin <- min(values)
   if (is.null(fixed_max)) { 
     round_max <- ceiling(vmax)
   } else {
     round_max <- fixed_max
   }
-  my_breaks <- seq(fixed_min, round_max, length.out=nticks)
+  if (is.null(fixed_min)) {
+    round_min <- floor(vmin)
+  } else {
+    round_min <- fixed_min
+  }
+  my_breaks <- seq(round_min, round_max, length.out=nticks)
   return(my_breaks)
 }
-
 
 plot_lmsmooth_info <- function(xvar, yvar, md) {
   pear <- cor.test(md[,xvar], md[,yvar])
