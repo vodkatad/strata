@@ -606,3 +606,113 @@ for (i in seq(1, nrow(num))) {
     }
   }
 }
+
+
+##### checks for consistency gistic Del - VAF ########################################3
+load('/mnt/trcanmed/snaketree/prj/strata/dataset/figures/noia.Rdata')
+#setwd('/mnt/cold1/snaketree/prj/strata/dataset/figures')
+setwd('/mnt/trcanmed/snaketree/prj/strata/dataset/figures')
+cn <- cn[wf$smodel,]
+cnhigh <- ifelse(cn== 2, 'Gain', ifelse(cn==-2, 'HomDel', ifelse(cn==-1, 'Del', 'WT')))
+#cn <- t(apply(mut, 2, as.character))
+cn <- t(cnhigh)
+
+mat <- t(mut)
+# to order genes depending on total muts
+s <- t(mat[[1]])
+su <- colSums(s)
+su <- su[order(-su)]
+
+mat <- ifelse(mat==1, 'Del1', ifelse(mat==2 ,'Del2', ifelse(mat==3, 'Del3', ifelse(mat==4, 'Del4', ifelse(mat==0, 'background', ifelse(mat==0.5, 'Del0', 'Del5'))))))
+
+# add genes without any non syn mut
+genes <- read.table(all_genes_f, sep="\t", header=TRUE)
+to_add <- setdiff(genes$gene_symbol, rownames(mat))
+
+tot_genes <- nrow(genes)
+tot_addgenes <- length(to_add)
+tot_models <- ncol(mat)
+to_add_mat <- matrix(rep('background', tot_addgenes*tot_models), nrow=tot_addgenes, ncol=tot_models)
+rownames(to_add_mat) <- to_add
+colnames(to_add_mat) <- colnames(mat)
+mat <- rbind(mat, to_add_mat)
+
+## add genes without cn data and order in the same way
+missing <- setdiff(rownames(mat), rownames(cn))
+tot_addgenes <- length(missing)
+tot_models <- ncol(cn)
+to_add_mat <- matrix(rep('WT', tot_addgenes*tot_models), nrow=tot_addgenes, ncol=tot_models)
+rownames(to_add_mat) <- missing
+colnames(to_add_mat) <- colnames(cn)
+cn <- rbind(cn, to_add_mat)
+cn <- cn[rownames(mat),]
+stopifnot(all(rownames(mat)==rownames(cn)))
+stopifnot(all(colnames(mat)==colnames(cn)))
+
+data <- read.table('/mnt/trcanmed/snaketree/prj/strata/dataset/figures/vaf_hr.tsv', sep="\t", header=TRUE, stringsAsFactors = F)
+
+num <- data.frame(matrix(0, nrow=nrow(data), ncol(data)), stringsAsFactors = F)
+rownames(num) <- rownames(data)
+colnames(num) <- colnames(data)
+for (i in seq(1, nrow(data))) {
+  for (j in seq(1, ncol(data))) {
+    if (!is.na(data[i,j]) && grepl(',', data[i,j])) {
+      vals <- strsplit(data[i,j], split=',')
+      print(max(as.numeric(unlist(vals))))
+      num[i,j] <- max(as.numeric(unlist(vals)))
+    } else if (!is.na(data[i,j]) && data[i,j] != '') {
+      num[i,j] <- as.numeric(data[i,j])
+    } else {
+      num[i,j] <- 0
+    }
+  }
+}
+
+data_merged <- merge(num, wf, by.x="row.names", by.y='smodel')
+stopifnot(nrow(num)==nrow(data_merged))
+
+mat3 <- num
+# add missing genes
+genes <- read.table(all_genes_f, sep="\t", header=TRUE)
+
+mat4 <- t(mat3)
+###6
+to_add <- setdiff(genes$gene_symbol, rownames(mat4))
+tot_genes <- nrow(genes)
+tot_addgenes <- length(to_add)
+tot_models <- ncol(mat4)
+to_add_mat <- matrix(rep(0, tot_addgenes*tot_models), nrow=tot_addgenes, ncol=tot_models)
+rownames(to_add_mat) <- to_add
+colnames(to_add_mat) <- colnames(mat4)
+mat4 <- rbind(mat4, to_add_mat)
+n <- names(su)
+su <- c(su, rep(0, length(to_add)))
+names(su) <- c(n, to_add)
+
+mat3 <- t(mat4)
+
+## mat4 has VAF - cn has CN
+all(rownames(mat4)==rownames(cn))
+all(colnames(mat4)==colnames(cn))
+
+
+# VAF of muts on genes with del
+vafdel <- mat4[cn=="Del"]
+vafdel <- vafdel[vafdel!=0]
+
+# VAF of muts on genes with homdel
+vafhdel <- mat4[cn=="HomDel"]
+vafhdel <- vafhdel[vafhdel!=0]
+
+# VAF of muts on genes with ampl
+vafgain <- mat4[cn=="Gain"]
+vafgain <- vafgain[vafgain!=0]
+
+# VAF of muts on genes with wt
+vafWT <- mat4[cn=="WT"]
+vafWT <- vafWT[vafWT!=0]
+
+
+pd <- data.frame(VAF=c(vafdel, vafWT), CN=c(rep('Del', length(vafdel)), rep('WT', length(vafWT))))
+
+ggplot(data=pd, aes(x=CN, y=VAF))+geom_boxplot(outlier.shape=NULL)+geom_jitter()+theme_bw()

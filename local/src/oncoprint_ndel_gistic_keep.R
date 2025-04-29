@@ -43,7 +43,7 @@ cnkeep <- intersect(rownames(cn), wf$smodel)
 cnkeep <- intersect(cnkeep, wanted$V1)
 cn <- cn[rownames(cn) %in% cnkeep,]
 
-save.image('noia.Rdata')
+#save.image('noia.Rdata')
 stopifnot(length(intersect(keep, cnkeep)) == length(keep))
 #wf <- wf[wf$smodel %in% keep,]
 cn <- cn[wf$smodel,]

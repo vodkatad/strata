@@ -101,6 +101,36 @@ rule hr_oncoprint_countdel:
     log: log="{week}_hr_oncoprintndel.pdf.log"
     script: SRC_DIR+"/oncoprint_ndel.R"
 
+# suppl 6A
+THR_HOM=0.9
+rule oncoprint_hom_del_6a:
+    input: mutmat="nDel_gene_mat.tsv", vaf="vaf_hr.tsv", wf="{week}_waterfall.tsv",  all_genes=DATA_DIR+"/targeted_homologous.tsv"
+    output: op="{week}_hr_6A_homdeletSNV.pdf", op_data="{week}_hr_6A_homdeletSNV.Rdata", opwf="{week}_hr_6A_homdeletSNVwf.pdf", wilcox_genes="{week}_wilcox_6A_homdeletSNV.tsv"
+    log: log="{week}_hr_homdeletSNV.pdf.log"
+    params: keep="all", thr=THR_HOM     
+    script: SRC_DIR+"/oncoprint_homdeletSNV.R"
+
+# suppl 6B
+# TODO  with cnmat="../shallow/gistic_thr_genes_HR.tsv" only and gistic events == -1
+#
+rule oncoprint_hom_del_6a_test:
+    input: mutmat="nDel_gene_mat.tsv", vaf="vaf_hr.tsv", wf="{week}_waterfall.tsv",  all_genes=DATA_DIR+"/targeted_homologous.tsv"
+    output: op="{week}_hr_6A_homdeletSNVt.pdf", op_data="{week}_hr_6A_homdeletSNVt.Rdata", opwf="{week}_hr_6A_homdeletSNVtwf.pdf", wilcox_genes="{week}_wilcox_6A_homdeletSNVt.tsv"
+    log: log="{week}_hr_homdeletSNV.pdf.log"
+    params: keep="m29_noRAD", thr=THR_HOM     
+    script: SRC_DIR+"/oncoprint_homdeletSNV.R"
+
+# suppl 11
+#TODO == fig4
+# suppl 11B
+# TODO same script as suppl 6B with keep="m29_noRAD"
+rule oncoprint_gisticdel_11B:
+    input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv", all_genes=DATA_DIR+"/targeted_homologous.tsv", cnmat="../shallow/gistic_thr_genes_HR.tsv",
+           keep="m29_noRAD"
+    output: op="{week}_hr_oncoprintndel_allcn_noRAD.eps", op_data="{week}_hr_oncoprintndel_allcn_noRAD.Rdata", opwf="{week}_hr_oncoprintndelwf_allcn_noRAD.eps", opmute="{week}_hr_oncoprintndelmute_allcn_noRAD.eps"
+    log: log="{week}_hr_oncoprintndel_allcn_noRAD.pdf.log"
+    script: SRC_DIR+"/oncoprint_ndel_gisticall_keep.R"
+
 rule hr_wilcoxon:
     input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv"
     output: wilcox_genes="{week}_wilcoxon_hr.tsv"
