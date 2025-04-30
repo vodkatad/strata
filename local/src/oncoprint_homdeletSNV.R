@@ -62,7 +62,6 @@ wilcoxon_perc_3 <- function(gene, mydata) {
   percwt <- mydata[mydata[,gene] < thr, 'perc']
   percmut <- mydata[mydata[,gene]  > thr, 'perc']
   if (length(percwt) != 0 && length(percmut) != 0) {
-    print(gene)
     wt <- wilcox.test(percwt, percmut)
     return(c(wt$p.value, length(percwt), length(percmut)))
   } else {
@@ -102,12 +101,19 @@ for (i in seq(1, nrow(mat))) {
   }
 }
 
-
 mat_vaf <- t(mat3)
+info <- which(mat_vaf!="Background", arr.ind=T)
+models <- unique(rownames(info))
+altgenes <- unique(colnames(mat_vaf)[info[,2]])
+sink(log_f)
+#'single-copy losses (GISTIC thresholded value = -1) were identified for XX genes in XX models.''
+print(paste0('for ', length(altgenes), ' genes'))
+print(paste0('in ', length(models), ' models'))
+print(altgenes)
+sink()
 
 #### loading of nDel data
 mut <- read.table(mutmat_f, sep="\t")
-save.image('stress.Rdata')
 
 keep <- intersect(rownames(mut), wf$smodel)
 mut <- mut[rownames(mut) %in% keep,]
@@ -189,7 +195,7 @@ get_recist <- function(x) {
   return(res)
 }
 
-sink(log_f)
+sink(log_f, append=T)
 print(dim(mat_ndel_hetSNV))
 sink()
 
