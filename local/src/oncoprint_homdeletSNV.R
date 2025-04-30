@@ -106,7 +106,7 @@ info <- which(mat_vaf!="Background", arr.ind=T)
 models <- unique(rownames(info))
 altgenes <- unique(colnames(mat_vaf)[info[,2]])
 sink(log_f)
-#'single-copy losses (GISTIC thresholded value = -1) were identified for XX genes in XX models.''
+#were identified for XX genes in XX models.''
 print(paste0('for ', length(altgenes), ' genes'))
 print(paste0('in ', length(models), ' models'))
 print(altgenes)

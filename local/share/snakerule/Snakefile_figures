@@ -112,6 +112,12 @@ rule oncoprint_hom_del_6a:
 
 # suppl 6B
 # TODO  with cnmat="../shallow/gistic_thr_genes_HR.tsv" only and gistic events == -1
+rule oncoprint_singlecopydel_6b:
+    input: all_genes=DATA_DIR+"/targeted_homologous.tsv", cnmat="../shallow/gistic_thr_genes_HR.tsv",  wf="{week}_waterfall.tsv"
+    output:  op="{week}_hr_6B_singlecopydel.pdf", op_data="{week}_hr_6B_singlecopydel.Rdata", opwf="{week}_hr_6B_singlecopydelwf.pdf", wilcox_genes="{week}_wilcox_6B_singlecopydel.tsv"
+    log: log="{week}_hr_singlecopydel.pdf.log"
+    params: keep="all", gistic=-1, gistic_name="Singlecopy_loss"
+    script: SRC_DIR+"/oncoprint_singlecopydel.R"
 
 # suppl 11E-1
 # Dovresti dirmi per favore i nomi dei geni, la natura dell'alterazione (mutazione o amplificazione, non mi sembra ci siano homozygous deletions) e dove cade (resistenti o sensibili)
