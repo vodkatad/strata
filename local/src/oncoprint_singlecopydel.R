@@ -62,9 +62,17 @@ print('Missing in CN:')
 print(missing)
 sink()
 
+num <- t(mat)
+data_merged <- merge(num, wf, by.x="row.names", by.y='smodel')
+
+if (keep != "all") {
+  mat <- mat[,colnames(mat) %in% data_merged$Row.names]
+}
+num <- t(mat)
+
 info <- which(mat!="background", arr.ind=T)
-models <- unique(rownames(info))
-altgenes <- unique(colnames(mat)[info[,2]])
+altgenes <- unique(rownames(info))
+models <- unique(colnames(mat)[info[,2]])
 sink(log_f)
 #'single-copy losses (GISTIC thresholded value = -1) were identified for XX genes in XX models.''
 print(paste0('for ', length(altgenes), ' genes'))
@@ -127,19 +135,20 @@ graphics.off()
 
 ### wilcoxon
 wilcoxon_perc_3 <- function(gene, mydata) {
-  percwt <- mydata[mydata[,gene] < thr, 'perc']
-  percmut <- mydata[mydata[,gene]  > thr, 'perc']
+  percwt <- mydata[mydata[,gene] == 'background', 'perc']
+  percmut <- mydata[mydata[,gene]  == 'Singlecopy_loss', 'perc']
   if (length(percwt) != 0 && length(percmut) != 0) {
     wt <- wilcox.test(percwt, percmut)
-    return(c(wt$p.value, length(percwt), length(percmut)))
+    return(c(wt$p.value, length(percwt), length(percmut), median(percwt), median(percmut)))
   } else {
-    return(c(NA, NA, NA))
+    return(c(NA, NA, NA, NA, NA))
   }
 }
 
-#wil <- as.data.frame(t(sapply(colnames(num), wilcoxon_perc_3, data_merged)))
-#colnames(wil) <- c('pvalue', 'nwt', 'nmut')
-#wil$padj <- p.adjust(wil$pvalue, method="BH")
-write.table(data.frame(TODO='wow'), file=wil_f, quote=FALSE, sep="\t")
+wil <- as.data.frame(t(sapply(colnames(num), wilcoxon_perc_3, data_merged)))
+colnames(wil) <- c('pvalue', 'nwt', 'nmut', 'medianwt','medianmut')
+wil$padj <- p.adjust(wil$pvalue, method="BH")
+wil <- wil[order(wil$pvalue),]
+write.table(wil, file=wil_f, quote=FALSE, sep="\t")
 
 save.image(op_data_f)
