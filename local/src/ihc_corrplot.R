@@ -24,12 +24,15 @@ x_lim <- list(
   H2AX_induction= c(0, 60),
   RAD51_NT = c(0, 10),
   RAD51_irino = c(0, 40),
-  Illumina = c(0,30)
+  Illumina = c(0,30),
+  Amoy = c(-20,100)
 )
 
 y_lim <- list(
   dvw3 = c(-100, 300),
-  Amoy = c(-20,100)
+  Amoy = c(-20,100),
+  POLD1 = c(15, 65),
+  RAD51_NT = c(0, 10)
 )
 
 
