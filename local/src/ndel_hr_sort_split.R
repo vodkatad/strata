@@ -19,6 +19,9 @@ if (ncol(mdata)-1 != length(newcols)) {
 }
 
 #mut ids conversions and to rownames
+# CRC0196 and ATM WTF
+anndata[anndata$Ref == '-', 'Ref'] <- ''
+anndata[anndata$Alt == '-', 'Alt'] <- ''
 rownames(anndata) <- paste0('chr', anndata$Chr, ":", anndata$Start, ":", anndata$Ref, ":", anndata$Alt)
 rownames(mdata) <- mdata$ID
 mdata$ID <- NULL
