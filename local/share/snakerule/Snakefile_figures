@@ -42,7 +42,7 @@ rule convert_to_vaf_prot_table:
     output: vaf="vaf_hr.tsv", prot="prot_hr.tsv"
     script: SRC_DIR+"/table_vaf_prot.R"
 
-# TODO
+# CRC0150 splicing variant G to T is recorded as a dot
 rule suppl_hr_vaf:
     input: vaf="vaf_hr.tsv", prot="prot_hr.tsv"
     output: "suppl_table_hr_vaf_prot.xlsx"
@@ -87,7 +87,7 @@ rule suppl_ndel_comma:
     output: mat="nDel_gene_mat_sorted_commajoined.tsv"
     script: SRC_DIR+"/ndel_hr_sort_split.R"
 
-# TODO
+# ATMerda done ok
 rule suppl_ndel:
     input: mat="nDel_gene_mat_sorted_commajoined.tsv"
     output: "suppl_table_hr_ndel.xlsx"
