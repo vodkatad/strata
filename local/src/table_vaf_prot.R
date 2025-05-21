@@ -55,11 +55,24 @@ search_gene_muts_prot <- function(gene, muts, annot) {
   genemuts$prot <- sapply(strsplit(genemuts$AAChange.refGene, ':'), function(x){x[[length(x)]][1]})
   if (nrow(genemuts) > 0) {
     genedata <- muts[rownames(muts) %in% rownames(genemuts),, drop=FALSE]
+    # genemuts$prot was not ordered like genedata...need to get the right mut in the right way.
+    genemuts <- genemuts[rownames(genemuts) %in% rownames(genedata),,drop=FALSE]
+    genemuts <- genemuts[rownames(genedata),, drop=FALSE]
     res <- data.frame(row.names=rownames(genedata))
-    for (i in seq(1, ncol(genedata))) {
-      res[, colnames(genedata)[i]] <- ifelse(genedata[,i] > thr, genemuts$prot, '')  
+    for (g_i in seq(1, nrow(genemuts))) {
+      for (m_i in seq(1, ncol(genedata))) {
+        if (genedata[g_i, m_i] > thr) {
+          res[g_i, m_i] <- genemuts[g_i, 'prot']
+        } else {
+          res[g_i, m_i] <- ''
+        }
+      } 
     }
+    #for (i in seq(1, ncol(genedata))) {
+    #  res[, colnames(genedata)[i]] <- ifelse(genedata[,i] > thr, genemuts$prot, '')  
+    #}
     collapsed <- apply(res, 2, function(x){paste0(x[x!=''], collapse=",")})
+    names(collapsed) <- colnames(genedata)
     return(collapsed)
   } else {
     return(rep('', ncol(muts)))
@@ -68,7 +81,7 @@ search_gene_muts_prot <- function(gene, muts, annot) {
 
 prot <- sapply(genes, search_gene_muts_prot, mdata, anndata)
 prot <- prot[wanted_crc,]
-
+#prot[prot==""] <- 'WT'
 
 write.table(vaf, file=vaffile, sep="\t", quote=FALSE)
 write.table(prot, file=protfile, sep="\t", quote=FALSE)
