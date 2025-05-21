@@ -28,18 +28,21 @@ rule cases_long:
 # the corresponding rule for biobanca targeted data could pick the top 10 mutated genes with VAF > 0.05 and then add Livio's requests (xeno's data, but check
 # your notes because I am not 100% sure).
 # will print genes without any nonsyn mut
+# different order? ATMerda
 rule convert_to_binary_gene_sample_mat:
     input: mut=HR_MUTS, annot=HR_MUTS_ANNOT, all_models="all_cases_hr.tsv"
     params: thr=0.05
     output: mat="binary_gene_mat.tsv"
     script: SRC_DIR+"/binarize_hr.R"
 
+# ATMerda vaf è ok, prot HR invece cambia per più modelli
 rule convert_to_vaf_prot_table:
     input: mut=HR_MUTS, annot=HR_MUTS_ANNOT, all_models="all_cases_hr.tsv", wanted="w3_waterfall.tsv"
     params: thr=0.05
     output: vaf="vaf_hr.tsv", prot="prot_hr.tsv"
     script: SRC_DIR+"/table_vaf_prot.R"
 
+# TODO
 rule suppl_hr_vaf:
     input: vaf="vaf_hr.tsv", prot="prot_hr.tsv"
     output: "suppl_table_hr_vaf_prot.xlsx"
@@ -67,6 +70,7 @@ rule hr_oncoprint:
     script: SRC_DIR+"/oncoprint_binary.R"
 
 # colored oncoprint for hr
+# redone ATMerda ok
 rule convert_to_ndel_gene_sample_mat:
     input: mut=HR_MUTS, annot=HR_MUTS_ANNOT, all_models="all_cases_hr.tsv", wf_models='w3_waterfall.tsv'
     params: thr=0.05
@@ -75,13 +79,15 @@ rule convert_to_ndel_gene_sample_mat:
     script: SRC_DIR+"/ndel_hr.R"
 
 # get nDel_gene_mat.tsv, sort models and genes as in vaf_hr.tsv, 0.5 becomes 0 - new sheet for suppl table 2
-# ndel_hr_sort_split.R TODO
+# ndel_hr_sort_split.R 
+# redone ATMerda ok
 rule suppl_ndel_comma:
     input: mut=HR_MUTS, annot=HR_MUTS_ANNOT, all_models="all_cases_hr.tsv", wf_models='w3_waterfall.tsv', sort="vaf_hr.tsv"
     params: thr=0.05
     output: mat="nDel_gene_mat_sorted_commajoined.tsv"
     script: SRC_DIR+"/ndel_hr_sort_split.R"
 
+# TODO
 rule suppl_ndel:
     input: mat="nDel_gene_mat_sorted_commajoined.tsv"
     output: "suppl_table_hr_ndel.xlsx"
@@ -97,12 +103,13 @@ rule hr_oncoprint_countdel_noRAD:
 
 rule hr_oncoprint_countdel:
     input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv", all_genes=DATA_DIR+"/targeted_homologous.tsv"
-    output: op="{week}_hr_oncoprintndel.eps", op_data="{week}_hr_oncoprintndel.Rdata", opwf="{week}_hr_oncoprintndelwf.eps", opmute="{week}_hr_oncoprintndelmute.eps", wilcox_genes="{week}_wilcoxHR.tsv"
+    output: op="{week}_hr_oncoprintndel.pdf", op_data="{week}_hr_oncoprintndel.Rdata", opwf="{week}_hr_oncoprintndelwf.pdf", opmute="{week}_hr_oncoprintndelmute.pdf", wilcox_genes="{week}_wilcoxHR.tsv"
     log: log="{week}_hr_oncoprintndel.pdf.log"
     script: SRC_DIR+"/oncoprint_ndel.R"
 
 # suppl 6A
 THR_HOM=0.9
+# redone ok
 rule oncoprint_hom_del_6a:
     input: mutmat="nDel_gene_mat.tsv", vaf="vaf_hr.tsv", wf="{week}_waterfall.tsv",  all_genes=DATA_DIR+"/targeted_homologous.tsv"
     output: op="{week}_hr_6A_homdeletSNV.pdf", op_data="{week}_hr_6A_homdeletSNV.Rdata", opwf="{week}_hr_6A_homdeletSNVwf.pdf", wilcox_genes="{week}_wilcox_6A_homdeletSNV.tsv"
@@ -135,6 +142,7 @@ rule oncoprint_gisticdel_11B:
     params: keep="m29_noRAD", gistic=-1, gistic_name="Singlecopy_loss"
     script: SRC_DIR+"/oncoprint_singlecopydel.R"
 
+# TODO
 rule hr_wilcoxon:
     input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv"
     output: wilcox_genes="{week}_wilcoxon_hr.tsv"
@@ -315,10 +323,10 @@ rule hr_oncoprint_countdel_cngisticall_m30_norad:
     script: SRC_DIR+"/oncoprint_ndel_gisticall_keep.R"
 
 
-### Main fig4
+### Main fig4a
 rule hr_oncoprint_countdel_cngistic:
     input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv", all_genes=DATA_DIR+"/targeted_homologous.tsv", cnmat="../shallow/gistic_thr_genes_HR.tsv"
-    output: op="{week}_hr_oncoprintndel_cn.eps", op_data="{week}_hr_oncoprintndel_cn.Rdata", opwf="{week}_hr_oncoprintndelwf_cn.eps", opmute="{week}_hr_oncoprintndelmute_cn.eps"
+    output: op="{week}_hr_oncoprintndel_cn.pdf", op_data="{week}_hr_oncoprintndel_cn.Rdata", opwf="{week}_hr_oncoprintndelwf_cn.pdf", opmute="{week}_hr_oncoprintndelmute_cn.pdf"
     log: log="{week}_hr_oncoprintndel_cn.pdf.log"
     script: SRC_DIR+"/oncoprint_ndel_gistic.R"
 

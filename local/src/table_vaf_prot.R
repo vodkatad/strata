@@ -11,12 +11,16 @@ anndata <- read.table(annot_f, sep="\t" , header=TRUE, stringsAsFactors = FALSE)
 all_models <- read.table(models_f, sep="\t" , header=FALSE, stringsAsFactors = FALSE)
 wanted <- read.table(casi_f, sep="\t", header=FALSE, stringsAsFactors = FALSE)
 
+save.image('pippo.Rdata') 
 # reduce longgen to smodel
 newcols <- unique(substr(colnames(mdata)[-1], 0,7))
 if (ncol(mdata)-1 != length(newcols)) {
   stop('Error, CRC models are repeated')
 }
 #mut ids conversions and to rownames
+# CRC0196 and ATM WTF
+anndata[anndata$Ref == '-', 'Ref'] <- ''
+anndata[anndata$Alt == '-', 'Alt'] <- ''
 rownames(anndata) <- paste0('chr', anndata$Chr, ":", anndata$Start, ":", anndata$Ref, ":", anndata$Alt)
 rownames(mdata) <- mdata$ID
 mdata$ID <- NULL
