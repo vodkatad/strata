@@ -56,6 +56,7 @@ search_gene_muts_prot <- function(gene, muts, annot) {
   if (nrow(genemuts) > 0) {
     genedata <- muts[rownames(muts) %in% rownames(genemuts),, drop=FALSE]
     # genemuts$prot was not ordered like genedata...need to get the right mut in the right way.
+    # the assumption probably was holding for hr data only.
     genemuts <- genemuts[rownames(genemuts) %in% rownames(genedata),,drop=FALSE]
     genemuts <- genemuts[rownames(genedata),, drop=FALSE]
     res <- data.frame(row.names=rownames(genedata))
