@@ -38,7 +38,7 @@ search_gene_muts_vaf <- function(gene, muts, annot) {
   genemuts <- genemuts[genemuts$ExonicFunc.refGene != 'synonymous SNV',]
   if (nrow(genemuts) > 0) {
     genedata <- muts[rownames(muts) %in% rownames(genemuts),, drop=FALSE]
-    vafs <- apply(genedata, 2, function(x){paste0(x[x>thr], collapse=",")})
+    vafs <- apply(genedata, 2, function(x){paste0(x[x>thr], collapse=", ")})
     return(vafs)
   } else {
     print(gene)
@@ -72,7 +72,7 @@ search_gene_muts_prot <- function(gene, muts, annot) {
     #for (i in seq(1, ncol(genedata))) {
     #  res[, colnames(genedata)[i]] <- ifelse(genedata[,i] > thr, genemuts$prot, '')  
     #}
-    collapsed <- apply(res, 2, function(x){paste0(x[x!=''], collapse=",")})
+    collapsed <- apply(res, 2, function(x){paste0(x[x!=''], collapse=", ")})
     names(collapsed) <- colnames(genedata)
     return(collapsed)
   } else {
@@ -82,7 +82,7 @@ search_gene_muts_prot <- function(gene, muts, annot) {
 
 prot <- sapply(genes, search_gene_muts_prot, mdata, anndata)
 prot <- prot[wanted_crc,]
-#prot[prot==""] <- 'WT'
+prot[prot==""] <- 'WT'
 
 write.table(vaf, file=vaffile, sep="\t", quote=FALSE)
 write.table(prot, file=protfile, sep="\t", quote=FALSE)

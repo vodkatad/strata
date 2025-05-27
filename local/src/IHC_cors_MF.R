@@ -1,5 +1,44 @@
 library(ggplot2)
 library(RColorBrewer)
+
+size <- 8
+
+#font_add(family = "myriad", regular = snakemake@input[['myriad']])
+#showtext_auto()
+
+#textSize <- textSize * (96/72) # these conversion were needed because the default dpi for text was 96?
+# in the svg the number passed to theme was reported as size = ..px.. rather than pt (?)
+#largerSize <- largerSize * (96/72) 
+death_conversion_dpi96 = 96/72
+
+textSize <- size * death_conversion_dpi96
+largerSize <- (size) * death_conversion_dpi96
+
+unmute_theme <- theme(
+  text = element_text(size = textSize),#, family='Arial'),
+  axis.title = element_text(size = largerSize),
+  axis.text.x = element_text(size = textSize, color="black"),#, angle = 90, vjust = 0.5, hjust=1)
+  axis.text.y = element_text(size = textSize, color="black"),
+  plot.title = element_text(size = largerSize, hjust = 0.5),
+  legend.title = element_text(size=largerSize, hjust = 0.5),
+  legend.text = element_text(size=textSize),
+  panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+  axis.line = element_line(colour = "black", size=0.508/0.564), # origin of this ratio is honestly not known, empirical
+  axis.ticks = element_line(color = "black", size=0.508/0.564),
+  axis.ticks.length= unit(1.905*death_conversion_dpi96, "mm"),
+  panel.background = element_blank()
+)
+
+guess_ticks <- function(values, nticks=5, fixed_max=NULL, fixed_min=0) {
+  vmax <- max(values)
+  if (is.null(fixed_max)) { 
+    round_max <- ceiling(vmax)
+  } else {
+    round_max <- fixed_max
+  }
+  my_breaks <- seq(fixed_min, round_max, length.out=nticks)
+  return(my_breaks)
+}
 setwd('/mnt/trcanmed/snaketree/prj/strata/dataset/figures')
 
 rad51_basal <- read.table('avgall_RAD51_NT.tsv', sep="\t")
@@ -87,13 +126,20 @@ ggplot(data=m5, aes(x=H2AX_induction, y=RAD51_induction, color=luraghi))+geom_po
 ggplot(data=m5, aes(x=POLD1, y=RAD51_NT, color=trimmeddw3, shape=luraghi))+geom_point()+theme_bw() +scale_colour_gradient2(midpoint = 35, low = "blue",
                                                                                                             mid = "white",
                                                                                                             high = "red")
-
-
-
-
 ggplot(data=m5, aes(x=POLD1, y=RAD51_irino, color=trimmeddw3, shape=luraghi))+geom_point()+theme_bw() +scale_colour_gradient2(midpoint = 35, low = "blue",
                                                                                                                            mid = "white",
                                                                                                                            high = "red")
+
+## plot figo supplementary 11 
+# Togliamo dal deg/dem sui m29 i due gruppi:
+#   - RAD51 > 15 & POLD1 < 35
+# - RAD51 < 10 & POLD1 > 40
+
+ggplot(data=m5, aes(x=POLD1, y=RAD51_irino, color=trimmeddw3))+geom_point()+theme_bw() +
+  scale_colour_gradient2(midpoint = 35, low = "blue", high = "red")+
+  geom_hline(yintercept=c(15,10))+geom_vline(xintercept = c(35,40))
+
+
 remove <- m5
 for (i in rownames(remove)) {
   if (remove[i, "POLD1"] < 35 && remove[i, "RAD51_irino"] > 15) {
@@ -105,8 +151,34 @@ for (i in rownames(remove)) {
   }
 }
 
+sd <- "/scratch/trcanmed/DE_RNASeq/dataset/magnifici29/samples_data"
+sd <- read.table(sd, quote = "", sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+sd <- sd[!duplicated(sd$model),]
+
+remove$model <- rownames(remove)
+
+remove <- merge(remove, sd, by="model")
+remove$type <- as.factor(remove$type)
+
+x_breaks <- guess_ticks(remove$POLD1, fixed_min=0, fixed_max=70)
+y_breaks <- guess_ticks(remove$RAD51_irino, fixed_min=-10, fixed_max=40)
+
+ggplot(data = remove, aes(x = POLD1, y = RAD51_irino)) +
+  geom_point(data = subset(remove, remove == "no"), aes(color = type), fill = "grey", shape = 21, size=4, stroke = 1) +
+  geom_point(data = subset(remove, remove == "yes"), aes(color = type, fill=type), shape = 21, size = 4, stroke = 1) +
+  scale_colour_manual(values = c("resistant" = rgb(red=165,green=0,blue=25, max = 255), "sensitive" = rgb(30, 85, 130, max = 255))) +
+  scale_fill_manual(values = c("resistant" = rgb(red=165,green=0,blue=25, max = 255), "sensitive" = rgb(30, 85, 130, max = 255))) +
+  geom_hline(yintercept = c(15, 10), linetype = "dashed") +
+  geom_vline(xintercept = c(35, 40), linetype = "dashed") +
+  unmute_theme+
+  scale_y_continuous(breaks=y_breaks, limits=c(min(y_breaks),max(y_breaks)), expand=c(0,0))+
+  scale_x_continuous(breaks=x_breaks, limits=c(min(x_breaks),max(x_breaks)), expand=c(0,0))
+
 remove2 <- remove
 remove2 <- remove2 %>% filter(remove == "yes")
+
+remove3 <- remove
+remove3 <- remove3 %>% filter(remove =="no")
 
 write.table(remove2, file="/scratch/trcanmed/DE_RNASeq/dataset/new_chemio_groups/removefromDEG.tsv", quote = FALSE,
             sep = "\t", col.names = TRUE, row.names = TRUE)
