@@ -43,7 +43,7 @@ rownames(m5) <- m5$Row.names
 m5$Row.names <- NULL
 
 m5$H2AX_induction <- m5$H2AX_irino / (m5$H2AX_NT+0.1)
-
+m5$log_H2AX_induction <- log2(m5$H2AX_induction)
 #if (!all(hrd$CASI == as.numeric(unlist(str_extract_all(hrd$smodel, '\\d+'))))) {
 #  stop('Issue in HRD scores models ids!')
 #}

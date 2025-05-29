@@ -10,6 +10,7 @@ size <- 8
 
 axis_names <- list(
   H2AX_induction= 'γ-H2AX induction post-treatment',
+  log_H2AX_induction= 'γ-H2AX induction post-treatment',
   dvw3= 'Relative tumor growth (% to baseline)',
   POLD1 = 'POLD1 nuclear positivity (% of total nuclear area)',
   RAD51_NT = 'Basal RAD51 nuclear positivity (% of total nuclear area)',
@@ -22,6 +23,7 @@ axis_names <- list(
 x_lim <- list(
   POLD1 = c(15, 65),
   H2AX_induction= c(0, 60),
+  log_H2AX_induction= c(-3, 6),
   RAD51_NT = c(0, 10),
   RAD51_irino = c(0, 40),
   Illumina = c(0,30),
