@@ -142,6 +142,22 @@ rule oncoprint_gisticdel_11B:
     params: keep="m29_noRAD", gistic=-1, gistic_name="Singlecopy_loss"
     script: SRC_DIR+"/oncoprint_singlecopydel.R"
 
+# suppl 11E-1 bis on radbassi
+rule hr_oncoprint_countdel_cngistic_grigi2:
+    input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv", all_genes=DATA_DIR+"/targeted_homologous.tsv", cnmat="../shallow/gistic_thr_genes_HR.tsv",
+           keep="RADbassi"
+    output: op="{week}_hr_oncoprintndel_cn_grigi2_11E-1.pdf", op_data="{week}_hr_oncoprintndel_cn_grigi2.Rdata", opwf="{week}_hr_oncoprintndelwf_cn_grigi2_11E-1.pdf" 
+    log: log="{week}_hr_oncoprintndel_cn_grigi2.pdf.log"
+    script: SRC_DIR+"/oncoprint_ndel_gistic_keep_pdf.R"
+
+# suppl 11E-2 bis on radbassi
+rule oncoprint_gisticdel_11B_grigi2:
+    input: all_genes=DATA_DIR+"/targeted_homologous.tsv", cnmat="../shallow/gistic_thr_genes_HR.tsv",  wf="{week}_waterfall.tsv"
+    output:  op="{week}_hr_11E2_singlecopydel2.pdf", op_data="{week}_hr_11E2_singlecopydel2.Rdata", opwf="{week}_hr_11E2_singlecopydelwf2.pdf", wilcox_genes="{week}_wilcox_11E2_singlecopydel2.tsv"
+    log: log="{week}_hr_11E2_singlecopydel2.pdf.log"
+    params: keep="RADbassi", gistic=-1, gistic_name="Singlecopy_loss"
+    script: SRC_DIR+"/oncoprint_singlecopydel.R"
+
 # TODO
 rule hr_wilcoxon:
     input: mutmat="nDel_gene_mat.tsv", wf="{week}_waterfall.tsv"

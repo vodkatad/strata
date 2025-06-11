@@ -402,3 +402,80 @@ pheatmap(top,
          annotation_colors = annot_color_list,
          number_color='black', fontsize_number=10) # removed display_numbers=ast, 
 graphics.off()
+
+##3 stronzi RAD51semilow
+
+m29 <- read.table('/scratch/trcanmed/DE_RNASeq/dataset/magnifici29/risultati_gsea_totali.tsv', sep="\t", header=T)
+all <- read.table('/scratch/trcanmed/DE_RNASeq/dataset/rad51_res.vs.sens/risultati_gsea_totali.tsv', sep="\t", header=T)
+
+blu <- c("HALLMARK_INTERFERON_ALPHA_RESPONSE", 
+         "HALLMARK_INTERFERON_GAMMA_RESPONSE", "HALLMARK_IL6_JAK_STAT3_SIGNALING") ##c("#74A9CF", "#3690C0", "#0570B0"), 
+
+bordeaux <- c("HALLMARK_FATTY_ACID_METABOLISM", "REACTOME_FATTY_ACID_METABOLISM") # c("#A50026", "#D73027")
+
+grigio <- c("HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION") # black
+
+verdi1 <- c("LIN_APC_TARGETS", "KIM_MYC_AMPLIFICATION_TARGETS_DN",
+            "SANSOM_APC_TARGETS_DN", "LEF1_UP.V1_UP", "LEF1_UP.V1_DN", "BCAT.100_UP.V1_UP") #"#41AB5D", "#238B45", "#006D2C"
+#c("#74C476", "#41AB5D", "#238B45")
+
+wpath <- data.frame(name=c(blu, bordeaux, grigio, verdi1), 
+                    color=c(rep('#74A9CF', length(blu)), rep("#A50026", length(bordeaux)), 'black', rep('#41AB5D', length(verdi1))),
+                    order=c(rep('l1', length(blu)), rep('l2', length(bordeaux)), 'l3', rep('l4', length(verdi1))))
+
+colnames(m29) <- paste0(colnames(m29), '_m29')
+colnames(all) <- paste0(colnames(all), '_semilow')
+
+m2 <- merge(m29, all, by='row.names')
+rownames(m2) <- m2$Row.names
+m2$Row.names <- NULL
+mw <- m2[rownames(m2) %in% wpath$name,]
+
+top <- mw[, grepl('NES', colnames(mw))]
+#pval <- mw[, grepl('adjust', colnames(mw))]
+pval <- mw[, grepl('pvalue', colnames(mw))]
+
+
+ast <- ifelse(pval < 0.05, '*', '')
+
+
+minv <- min(top)
+maxv <- 2
+neutral_value <- 0
+bk1 <- seq(minv-0.001, neutral_value-0.0009, length.out=224)
+bk2 <- seq(neutral_value+0.0001, maxv+0.001, length.out=224)
+bk <- c(bk1, bk2)
+my_palette <- c(colorRampPalette(colors = c("darkblue",
+                                            "lightblue"))(n = length(bk1)-1),
+                "#FFFFFF", #"snow1",
+                c(colorRampPalette(colors = c("tomato1", "darkred"))(n
+                                                                     = length(bk2)-1)))
+
+rownames(wpath) <- wpath$name
+wpath$name <- NULL
+
+top <- merge(top, wpath, by="row.names")
+rownames(top) <- top$Row.names
+top$Row.names <- NULL
+top <- top[order(top$order),]
+top$color <- NULL
+top$order <- NULL
+
+ast <- merge(ast, wpath, by="row.names")
+rownames(ast) <- ast$Row.names
+ast$Row.names <- NULL
+ast <- ast[order(ast$order),]
+ast$color <- NULL
+ast$order <- NULL
+
+
+wpath$color <- NULL
+
+wpath$order <- factor(wpath$order, levels = c('l1','l2','l3','l4'))
+
+annot_color_list <- list(order=c(l1='#74A9CF', l2="#A50026", l3='black', l4='#41AB5D'))
+#pdf('/mnt/trcanmed/snaketree/prj/strata/dataset/figures/S4_heatmap_m29_all.pdf', family="sans")
+pheatmap(top,
+         breaks = bk, color=my_palette, cluster_rows = F, cluster_cols = F, annotation_row=wpath,
+         annotation_colors = annot_color_list,
+         number_color='black', fontsize_number=10) # removed display_numbers=ast, 
